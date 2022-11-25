@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common'
 import { AppService } from './app.service'
-import { BotService } from './bot/bot.service'
+import { BotService } from './bot/bot.service.ts'
 
 @Controller()
 export class AppController {
