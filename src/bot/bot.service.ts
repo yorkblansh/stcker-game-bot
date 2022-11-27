@@ -10,6 +10,11 @@ import {
 	LinkStatusObject,
 } from '../utils'
 import * as dotenv from 'dotenv' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
+import {
+	InlineKeyboard,
+	InlineKeyboardButton,
+	Row,
+} from 'node-telegram-keyboard-wrapper'
 dotenv.config()
 
 interface FinalMessage {
@@ -17,6 +22,18 @@ interface FinalMessage {
 	bad: string[]
 	all: string[]
 }
+
+const goToGameKeyboard = new InlineKeyboard()
+goToGameKeyboard.push(
+	/**
+	 * Forcing generic type here due to InlineKeyboardButton generic.
+	 * See Row's file for a better Typescript explanation
+	 */
+
+	new Row<InlineKeyboardButton>(
+		new InlineKeyboardButton('Начать играть', 'callback_data', 'start_game'),
+	),
+)
 
 // const replyKeyboard = new ReplyKeyboard()
 // const inlineKeyboard = new InlineKeyboard()
