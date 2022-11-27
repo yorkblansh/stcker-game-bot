@@ -69,8 +69,6 @@ export class BotService implements OnModuleInit {
 		this.bot.onText(/(.+)/, (msg, match) => {
 			const chatId = msg.chat.id
 			const links = match.input
-
-			
 		})
 	}
 }
