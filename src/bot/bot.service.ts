@@ -3,9 +3,12 @@ import TelegramBot from 'node-telegram-bot-api'
 import { HttpService } from '@nestjs/axios'
 import { FetcherService } from '../fetcher/fetcher.service'
 import { createClient } from 'redis'
+import pEachSeries from 'p-each-series'
 import { pipe } from 'fp-ts/function'
 import * as dotenv from 'dotenv' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
 import { sticker } from './utils/stickers'
+import { Either, right, left } from '@sweet-monads/either'
+
 dotenv.config()
 
 type RedisClient = ReturnType<typeof createClient>
@@ -74,26 +77,32 @@ export class BotService implements OnModuleInit {
 	}
 
 	private hellowMessageHandler = async (hr: HandledResponse) => {
+		const { mapRight } = await this.getWaitingStartHelloStatus()
+mapRight
+
+
 		const tgResponses = await this.pipeTelegramMessage([
-			this.sendMessage(
-				`Добро пожаловать в Sticker Fights!  
+			() =>
+				this.sendMessage(
+					`Добро пожаловать в Sticker Fights!  
 Мир полный приключений. 
 Испытай свою удачу 🎲  
 Брось вызов другим игрокам ⚔  
 Заводи новые знакомства, 🤝  
 НЕ УПУСТИ СВОЙ ШАНС`,
-			),
-			this.sendSticker(sticker.bunny_hellow),
-			this.sendMessage(
-				`Bunny Girl 
+				),
+			() => this.sendSticker(sticker.bunny_hellow),
+			() =>
+				this.sendMessage(
+					`Bunny Girl 
 			Вижу новое лицо в нашем скромном местечке, как тебя зовут?`,
-			),
+				),
 		])
 
-		await this.setTempChatId()
-		await this.setWaitingNicknameStatus(true)
-		await this.setWaitingAvatarStatus(false)
-		this.setTempMessageIdList(tgResponses.map(({ message_id }) => message_id))
+		this.setTempChatId()
+		this.setWaitingNicknameStatus(true)
+		this.setWaitingAvatarStatus(false)
+		this.setTempMessageIdList(tgResponses)
 
 		// await this.bot.sendSticker(chatId, sticker.helow_cherry)
 
@@ -111,15 +120,17 @@ export class BotService implements OnModuleInit {
 		// await this.setTempChatId(un, hellowMessage.chat.id)
 	}
 
-	private pipeTelegramMessage = (
-		tgResponseList: Promise<TelegramBot.Message>[],
+	private pipeTelegramMessage = async (
+		tgResponseList: (() => Promise<TelegramBot.Message>)[],
 	) => {
-		return Promise.all(
-			tgResponseList.map(async (tgResponse) => {
-				const { message_id } = await tgResponse
-				return { message_id }
-			}),
-		)
+		return new Promise<string[]>(async (resolve, reject) => {
+			let arr: string[] = []
+			await pEachSeries(tgResponseList, async (promise) => {
+				const { message_id } = await promise()
+				arr.push(message_id.toString())
+			})
+			return resolve(arr)
+		})
 	}
 
 	private checkRedisData = async () => {
@@ -166,6 +177,21 @@ export class BotService implements OnModuleInit {
 			this.handledResponse.chatId,
 		)
 
+	private getWaitingStartHelloStatus = async (): Promise<
+		Either<boolean, boolean>
+	> => {
+		const str = await this.redis.get(
+			`${this.handledResponse.username}-waiting_start_hello`,
+		)
+		return str && str === '22' ? right(true) : left(false)
+	}
+
+	private setWaitingStartHelloStatus = (status: boolean) =>
+		this.redis.set(
+			`${this.handledResponse.username}-waiting_start_hello`,
+			this.rus(status),
+		)
+
 	private setWaitingNicknameStatus = (status: boolean) =>
 		this.redis.set(
 			`${this.handledResponse.username}-waiting_nickname`,
@@ -198,5 +224,34 @@ export class BotService implements OnModuleInit {
 	 */
 	private rus(status: boolean) {
 		return status ? 22 : 11
+	}
+}
+
+class ExecutorPool {
+	private _size: number
+
+	constructor(size: number) {
+		if (size < 1)
+			throw new Error('[ExecutorPool] Размер очереди меньше единицы.')
+		this._size = size
+	}
+
+	async execute(tasks: Promise<any>[]) {
+		const results = Array(tasks.length)
+		const executors = Array(this._size)
+			.fill(null)
+			.map((e, executorId) => async (taskPool) => {
+				while (true) {
+					const task = taskPool.pop()
+					if (!task) break
+
+					const index = taskPool.length
+					results[index] = await task()
+					console.log(JSON.stringify({ taskId: results[index], executorId }))
+				}
+			})
+		const taskPool = [...tasks]
+		await Promise.all(executors.map((executor) => executor(taskPool)))
+		return results
 	}
 }
