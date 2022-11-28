@@ -30,6 +30,7 @@
 		"@nestjs/platform-express": "^9.0.0",
 		"async": "^3.2.4",
 		"dotenv": "^16.0.3",
+		"fp-ts": "^2.13.1",
 		"lodash.chunk": "^4.2.0",
 		"lodash.debounce": "^4.0.8",
 		"lodash.throttle": "^4.1.1",

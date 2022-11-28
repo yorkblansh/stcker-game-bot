@@ -1,8 +1,9 @@
-import { Injectable, OnModuleInit } from '@nestjs/common'
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common'
 import TelegramBot from 'node-telegram-bot-api'
 import { HttpService } from '@nestjs/axios'
 import { FetcherService } from '../fetcher/fetcher.service'
 import { createClient } from 'redis'
+import { pipe } from 'fp-ts/function'
 import * as dotenv from 'dotenv' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
 dotenv.config()
 
@@ -15,12 +16,16 @@ interface HandledResponse {
 	messageId: number
 }
 
+type kk = () => void
+
 @Injectable()
 export class BotService implements OnModuleInit {
 	private bot: TelegramBot
 	private httpRequest: FetcherService['httpRequest']
+	private handledResponse: HandledResponse
 
 	constructor(
+		@Inject('REDIS_CLIENT') private readonly redis: RedisClient,
 		private readonly httpService: HttpService,
 		private readonly fetcherService: FetcherService,
 	) {}
@@ -48,7 +53,7 @@ export class BotService implements OnModuleInit {
 		(cb: (args: HandledResponse) => any) =>
 		(msg: TelegramBot.Message, match: RegExpExecArray) => {
 			const input = match.input
-			const res: HandledResponse = {
+			this.handledResponse = {
 				chatId: msg.chat.id,
 				input,
 				username: msg.chat.username,
@@ -56,50 +61,77 @@ export class BotService implements OnModuleInit {
 			}
 			const isInputValid =
 				input !== undefined || input !== null || input || input !== ''
-			return isInputValid ? cb(res) : console.log('some input error')
+			return isInputValid
+				? cb(this.handledResponse)
+				: console.log('some input error')
 		}
 
 	private handleClient() {
 		this.mapHandler(/\/start/)(this.hellowMessageHandler)
 	}
 
-	private hellowMessageHandler = ({
-		chatId,
-		username: un,
-	}: HandledResponse) => {
-		// this.setWaitingNicknameStatus(un, true)
-		// this.setWaitingAvatarStatus(un, false)
+	private hellowMessageHandler = async (hr: HandledResponse) => {
+		const { message_id } = await this.sendMessage(
+			'Привет, меня зовут Черри!\nЯ помогаю освоиться новоприбывшим, а как тебя зовут?',
+		)
+		this.setTempMessageId(message_id)
+		this.setTempChatId()
+		this.setWaitingNicknameStatus(true)
+		this.setWaitingAvatarStatus(false)
 
 		// await this.bot.sendSticker(chatId, sticker.helow_cherry)
 
-		this.bot.sendMessage(
-			chatId,
-			'Привет, меня зовут Черри!\nЯ помогаю освоиться новоприбывшим, а как тебя зовут?',
-		)
+		// pipe(this.HRFeeder(hr), this.setTempChatId)
+
+		// const { message_id } = await this.bot.sendMessage(
+		// 	chatId,
+		// 	'Привет, меня зовут Черри!\nЯ помогаю освоиться новоприбывшим, а как тебя зовут?',
+		// )
+		// this.carry(hr)
+		// 	.feedTo(this.setTempChatId)
+		// 	.feedTo(this.setTempMessageId(message_id))
 
 		// await this.setTempMessageId(un, hellowMessage.message_id)
 		// await this.setTempChatId(un, hellowMessage.chat.id)
 	}
 
-	private setTempMessageId(username: string, messageId: number | string) {
-		return this.redis.set(`${username}-temp_message_id`, messageId)
-	}
+	// private carry = (hr: HandledResponse) => {
+	// 	function feedTo(cb: (hr: HandledResponse) => any) {
+	// 		cb(hr)
+	// 		return { feedTo }
+	// 	}
+	// 	return { feedTo }
+	// }
 
-	private setTempChatId(username: string, chatId: number | string) {
-		return this.redis.set(`${username}-temp_chat_id`, chatId)
-	}
+	private sendMessage = (text: string) =>
+		this.bot.sendMessage(this.handledResponse.chatId, text)
 
-	private setWaitingNicknameStatus(username: string, status: boolean) {
-		return this.redis.set(`${username}-waiting_nickname`, this.rus(status))
-	}
+	private setTempMessageId = (messageId: string | number) =>
+		// ({ username }: HandledResponse) =>
+		this.redis.set(
+			`${this.handledResponse.username}-temp_message_id`,
+			messageId,
+		)
+
+	private setTempChatId = () =>
+		this.redis.set(
+			`${this.handledResponse.username}-temp_chat_id`,
+			this.handledResponse.chatId,
+		)
+
+	private setWaitingNicknameStatus = (status: boolean) =>
+		this.redis.set(
+			`${this.handledResponse.username}-waiting_nickname`,
+			this.rus(status),
+		)
 
 	private async getWaitingNicknameStatus(username: string): Promise<boolean> {
 		const str = await this.redis.get(`${username}-waiting_nickname`)
 		return str && str === '22'
 	}
 
-	private setWaitingAvatarStatus(username: string, status: boolean) {
-		return this.redis.set(`${username}-waiting_avatar`, this.rus(status))
+	private setWaitingAvatarStatus(status: boolean) {
+		return this.redis.set(`${this.handledResponse.username}-waiting_avatar`, this.rus(status))
 	}
 
 	private async getWaitingAvatarStatus(username: string): Promise<boolean> {
