@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common'
-import { BotService } from './bot.service.ts'
+import { BotService } from './bot.service'
 import { HttpModule } from '@nestjs/axios'
 import { FetcherModule } from '../fetcher/fetcher.module'
 import { RedisModule } from '../redis/redis.module'
