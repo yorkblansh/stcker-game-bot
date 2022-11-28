@@ -38,3 +38,4 @@ lerna-debug.log*
 .pnp.cjs
 .pnp.loader.mjs
 yarn.lock
+.yarn/install-state.gz
