@@ -1,47 +1,16 @@
 import { Injectable, OnModuleInit } from '@nestjs/common'
 import TelegramBot from 'node-telegram-bot-api'
 import { HttpService } from '@nestjs/axios'
-import chunk from 'lodash.chunk'
 import { FetcherService } from '../fetcher/fetcher.service'
-import {
-	delayedMap,
-	filterLinksStatuses,
-	getLoopCount,
-	LinkStatusObject,
-} from '../utils'
 import * as dotenv from 'dotenv' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
 dotenv.config()
 
-interface FinalMessage {
-	ok: string[]
-	bad: string[]
-	all: string[]
+interface HandledResponse {
+	chatId: number
+	input: RegExpExecArray['input']
+	username: string
+	messageId: number
 }
-
-// const replyKeyboard = new ReplyKeyboard()
-// const inlineKeyboard = new InlineKeyboard()
-
-// const firstReplyKeyboardRowToShowConstructor = new Row<KeyboardButton>(
-// 	new KeyboardButton('1:1 Button'),
-// 	new KeyboardButton('1:2 Button'),
-// )
-
-// const firstReplyKeyboardRowToShowConstructor1 = new Row<
-// 	InlineKeyboardButton<any>
-// >(new InlineKeyboardButton('My text 2', 'callback_data', '/echo qwe'))
-
-// const secondReplyKeyboardRowToShowRowAsArray = new Row<KeyboardButton>()
-
-// secondReplyKeyboardRowToShowRowAsArray.push(
-// 	new KeyboardButton('2:1 Button'),
-// 	new KeyboardButton('2:2 Button'),
-// )
-
-// // replyKeyboard.push(
-// // 	firstReplyKeyboardRowToShowConstructor,
-// // 	secondReplyKeyboardRowToShowRowAsArray,
-// // )
-// inlineKeyboard.push(firstReplyKeyboardRowToShowConstructor1)
 
 @Injectable()
 export class BotService implements OnModuleInit {
@@ -64,18 +33,45 @@ export class BotService implements OnModuleInit {
 	}
 
 	handleCommands() {
-		this.handleScaner()
+		this.handleClient()
 		this.bot.on('polling_error', (err) => console.log(err))
 	}
 
-	private handleScaner() {
-		this.httpRequest = this.fetcherService.httpRequest
-		this.bot.onText(/(.+)/, async (msg, match) => {
-			let messageId = 0
-			const chatId = msg.chat.id
-			const links = match.input.split(/\r?\n/)
+	private mapHandler =
+		(command: RegExp) => (handler: (args: HandledResponse) => any) =>
+			this.bot.onText(command, this.inputMessageHandler(handler))
 
-			this.bot.sendMessage(chatId, 'adw')
-		})
+	private inputMessageHandler =
+		(cb: (args: HandledResponse) => any) =>
+		(msg: TelegramBot.Message, match: RegExpExecArray) => {
+			const input = match.input
+			const res: HandledResponse = {
+				chatId: msg.chat.id,
+				input,
+				username: msg.chat.username,
+				messageId: msg.message_id,
+			}
+			const isInputValid =
+				input !== undefined || input !== null || input || input !== ''
+			return isInputValid ? cb(res) : console.log('some input error')
+		}
+
+	private handleClient() {
+		this.mapHandler(/\/start/)(this.hellowMessageHandler)
+	}
+
+	private hellowMessageHandler({ chatId, username: un }: HandledResponse) {
+		// this.setWaitingNicknameStatus(un, true)
+		// this.setWaitingAvatarStatus(un, false)
+
+		// await this.bot.sendSticker(chatId, sticker.helow_cherry)
+
+		this.bot.sendMessage(
+			chatId,
+			'Привет, меня зовут Черри!\nЯ помогаю освоиться новоприбывшим, а как тебя зовут?',
+		)
+
+		// await this.setTempMessageId(un, hellowMessage.message_id)
+		// await this.setTempChatId(un, hellowMessage.chat.id)
 	}
 }
