@@ -31,7 +31,7 @@ goToGameKeyboard.push(
 	 */
 
 	new Row<InlineKeyboardButton>(
-		new InlineKeyboardButton('Начать играть', 'callback_data', 'start_game'),
+		new InlineKeyboardButton('➡ village', 'callback_data', 'start_game'),
 	),
 )
 
@@ -83,9 +83,15 @@ export class BotService implements OnModuleInit {
 	handleCommands() {
 		this.bot.on('polling_error', (err) => console.log(err))
 
-		this.bot.onText(/(.+)/, (msg, match) => {
+		this.bot.onText(/(.+)/, async (msg, match) => {
 			const chatId = msg.chat.id
-			const links = match.input
+			// const links = match.input
+
+			const options: TelegramBot.SendMessageOptions = {
+				reply_markup: goToGameKeyboard.getMarkup(),
+			}
+
+			this.bot.sendMessage(chatId, 'тест', options)
 		})
 	}
 }
