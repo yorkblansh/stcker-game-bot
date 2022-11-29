@@ -11,6 +11,7 @@ import { Either, right, left } from '@sweet-monads/either'
 import internal from 'stream'
 import fs from 'fs'
 import path from 'path'
+import { FsService } from '../fs/fs.service'
 
 dotenv.config()
 
@@ -44,6 +45,7 @@ export class BotService implements OnModuleInit {
 		@Inject('REDIS_CLIENT') private readonly redis: RedisClient,
 		private readonly httpService: HttpService,
 		private readonly fetcherService: FetcherService,
+		private readonly fsService: FsService,
 	) {}
 
 	onModuleInit() {
@@ -128,7 +130,9 @@ export class BotService implements OnModuleInit {
 
 		const tgResponses = await this.pipeTelegramMessage([
 			() => this.sendSticker(sticker.nice_bunny),
-			() => this.sendMessage(`<strong> text </strong>`),
+			() =>
+				this.sendMessage(`<b><i>Bunny Girl</i></b>
+У тебя правда такое имя?`),
 			() => this.sendMessage(`${input}`),
 		])
 
@@ -139,21 +143,21 @@ export class BotService implements OnModuleInit {
 		const { messageId } = this.handledResponse
 		this.deleteMessage(messageId)
 		const tgResponses = await this.pipeTelegramMessage([
-			() => this.sendPhoto(),
+			() => this.sendPhoto(this.fsService.getHelloImg()),
 			() =>
 				this.sendMessage(
-					`Добро пожаловать в Sticker Fights!  
-Мир полный приключений. 
+					`<b>Добро пожаловать в Sticker Fights!</b>  
+<i>Мир полный приключений.</i> 
 Испытай свою удачу 🎲  
 Брось вызов другим игрокам ⚔  
 Заводи новые знакомства, 🤝  
-НЕ УПУСТИ СВОЙ ШАНС`,
+<b><u>НЕ УПУСТИ СВОЙ ШАНС</u></b>`,
 				),
 			() => this.sendSticker(sticker.bunny_hellow),
 			() =>
 				this.sendMessage(
-					`Bunny Girl 
-			Вижу новое лицо в нашем скромном местечке, как тебя зовут?`,
+					`<b><i>Bunny Girl</i></b> 
+Вижу новое лицо в нашем скромном местечке, как тебя зовут?`,
 				),
 		])
 
