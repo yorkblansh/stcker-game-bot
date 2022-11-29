@@ -8,10 +8,21 @@ import { pipe } from 'fp-ts/function'
 import * as dotenv from 'dotenv' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
 import { sticker } from './utils/stickers'
 import { Either, right, left } from '@sweet-monads/either'
+import internal from 'stream'
+import fs from 'fs'
+import path from 'path'
 
 dotenv.config()
 
+type GETSET = 'get' | 'set'
+
 type RedisClient = ReturnType<typeof createClient>
+
+interface MapHandlerProps {
+	command: RegExp
+	handler: (args: HandledResponse) => any
+	screenStateMonad: () => Promise<Either<boolean, boolean>>
+}
 
 interface HandledResponse {
 	chatId: number
@@ -50,13 +61,18 @@ export class BotService implements OnModuleInit {
 		this.bot.on('polling_error', (err) => console.log(err))
 	}
 
-	private mapHandler =
-		(command: RegExp) => (handler: (args: HandledResponse) => any) =>
-			this.bot.onText(command, this.inputMessageHandler(handler))
+	private mapHandler = ({
+		command,
+		handler,
+		screenStateMonad: ssm,
+	}: MapHandlerProps) =>
+		this.bot.onText(command, this.inputMessageHandler(command)(handler)(ssm))
 
 	private inputMessageHandler =
+		(command: RegExp) =>
 		(cb: (args: HandledResponse) => any) =>
-		(msg: TelegramBot.Message, match: RegExpExecArray) => {
+		(screenStateMonad: () => Promise<Either<boolean, boolean>>) =>
+		async (msg: TelegramBot.Message, match: RegExpExecArray) => {
 			const input = match.input
 			this.handledResponse = {
 				chatId: msg.chat.id,
@@ -64,24 +80,66 @@ export class BotService implements OnModuleInit {
 				username: msg.chat.username,
 				messageId: msg.message_id,
 			}
+
+			const { value: isThisScreen } = await screenStateMonad()
+
 			const isInputValid =
 				input !== undefined || input !== null || input || input !== ''
-			return isInputValid
+
+			return isInputValid && isThisScreen
 				? cb(this.handledResponse)
-				: console.log('some input error')
+				: console.log({ command, isInputValid, isThisScreen })
 		}
 
 	private handleClient() {
-		this.mapHandler(/\/start/)(this.hellowMessageHandler)
-		this.mapHandler(/\/check/)(this.checkRedisData)
+		this.mapHandler({
+			command: /\/start/,
+			handler: this.hellowMessageHandler,
+			screenStateMonad: this.getWaitingStartHelloStatus,
+		})
+
+		this.mapHandler({
+			command: /[a-z]/,
+			handler: this.chooseNicknameHandler,
+			screenStateMonad: this.getWaitingNicknameStatus,
+		})
+
+		this.mapHandler({
+			command: /\/seton/,
+			handler: this.setStartOn,
+			screenStateMonad: () => new Promise((res) => res(right(true))),
+		})
+		this.mapHandler({
+			command: /\/setoff/,
+			handler: this.setStartOff,
+			screenStateMonad: () => new Promise((res) => res(right(true))),
+		})
+	}
+	private setStartOn = () => this.setWaitingStartHelloStatus(true)
+	private setStartOff = () => this.setWaitingStartHelloStatus(false)
+
+	private chooseNicknameHandler = async () => {
+		const { input, messageId: userMessageId } = this.handledResponse
+		this.getTempMessageIdList().map((messageId) => {
+			this.deleteMessage(messageId)
+		})
+		this.pruneMessageIdList()
+		this.deleteMessage(userMessageId)
+
+		const tgResponses = await this.pipeTelegramMessage([
+			() => this.sendSticker(sticker.nice_bunny),
+			() => this.sendMessage(`<strong> text </strong>`),
+			() => this.sendMessage(`${input}`),
+		])
+
+		this.setWaitingNicknameStatus(false)
 	}
 
 	private hellowMessageHandler = async (hr: HandledResponse) => {
-		const { mapRight } = await this.getWaitingStartHelloStatus()
-mapRight
-
-
+		const { messageId } = this.handledResponse
+		this.deleteMessage(messageId)
 		const tgResponses = await this.pipeTelegramMessage([
+			() => this.sendPhoto(),
 			() =>
 				this.sendMessage(
 					`Добро пожаловать в Sticker Fights!  
@@ -103,21 +161,6 @@ mapRight
 		this.setWaitingNicknameStatus(true)
 		this.setWaitingAvatarStatus(false)
 		this.setTempMessageIdList(tgResponses)
-
-		// await this.bot.sendSticker(chatId, sticker.helow_cherry)
-
-		// pipe(this.HRFeeder(hr), this.setTempChatId)
-
-		// const { message_id } = await this.bot.sendMessage(
-		// 	chatId,
-		// 	'Привет, меня зовут Черри!\nЯ помогаю освоиться новоприбывшим, а как тебя зовут?',
-		// )
-		// this.carry(hr)
-		// 	.feedTo(this.setTempChatId)
-		// 	.feedTo(this.setTempMessageId(message_id))
-
-		// await this.setTempMessageId(un, hellowMessage.message_id)
-		// await this.setTempChatId(un, hellowMessage.chat.id)
 	}
 
 	private pipeTelegramMessage = async (
@@ -151,19 +194,32 @@ mapRight
 	// 	return { feedTo }
 	// }
 
-	private sendMessage = (sticker: string) =>
-		this.bot.sendMessage(this.handledResponse.chatId, sticker)
+	private sendMessage = (text: string) =>
+		this.bot.sendMessage(this.handledResponse.chatId, text, {
+			parse_mode: 'HTML',
+		})
 
-	private sendSticker = (text: string) =>
-		this.bot.sendSticker(this.handledResponse.chatId, text)
+	private sendPhoto = (photo: string | internal.Stream | Buffer) =>
+		this.bot.sendPhoto(this.handledResponse.chatId, photo)
+
+	private deleteMessage = (id: string | number) => {
+		console.log('message deleted')
+		this.bot.deleteMessage(this.handledResponse.chatId, id.toString())
+	}
+
+	private sendSticker = (sticker: string) =>
+		this.bot.sendSticker(this.handledResponse.chatId, sticker)
 
 	private setTempMessageIdList = (messageIdList: string[] | number[]) =>
 		messageIdList.map((messageId) =>
 			this.tempMessageIdList.push(messageId.toString()),
 		)
 
-	private getTempMessageIdList = (messageIdList: string[] | number[]) =>
-		this.tempMessageIdList
+	private pruneMessageIdList = () => {
+		this.tempMessageIdList = []
+	}
+
+	private getTempMessageIdList = () => this.tempMessageIdList
 
 	// ({ username }: HandledResponse) =>
 	// this.redis.set(
@@ -176,6 +232,12 @@ mapRight
 			`${this.handledResponse.username}-temp_chat_id`,
 			this.handledResponse.chatId,
 		)
+
+	private setNickname = (nickname: string) =>
+		this.redis.set(`${this.handledResponse.username}-nickname`, nickname)
+
+	private getNickname = () =>
+		this.redis.get(`${this.handledResponse.username}-nickname`)
 
 	private getWaitingStartHelloStatus = async (): Promise<
 		Either<boolean, boolean>
@@ -198,11 +260,13 @@ mapRight
 			this.rus(status),
 		)
 
-	private getWaitingNicknameStatus = async () => {
+	private getWaitingNicknameStatus = async (): Promise<
+		Either<boolean, boolean>
+	> => {
 		const str = await this.redis.get(
 			`${this.handledResponse.username}-waiting_nickname`,
 		)
-		return str && str === '22'
+		return str && str === '22' ? right(true) : left(false)
 	}
 
 	private setWaitingAvatarStatus = (status: boolean) => {
