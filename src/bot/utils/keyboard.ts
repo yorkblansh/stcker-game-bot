@@ -1,3 +1,4 @@
+import TelegramBot from 'node-telegram-bot-api'
 import {
 	InlineKeyboard,
 	Row,
@@ -9,8 +10,9 @@ enum NameConfirmation {
 	no = 'no',
 }
 
-export const isItYourName = () =>
-	new InlineKeyboard().push(
+export const isItYourName = () => {
+	const keyboard = new InlineKeyboard()
+	keyboard.push(
 		/**
 		 * Forcing generic type here due to InlineKeyboardButton generic.
 		 * See Row's file for a better Typescript explanation
@@ -20,3 +22,9 @@ export const isItYourName = () =>
 			new InlineKeyboardButton('Нет', 'callback_data', NameConfirmation.no),
 		),
 	)
+
+	const options: TelegramBot.SendMessageOptions = {
+		reply_markup: keyboard.getMarkup(),
+	}
+	return { options, keyboard }
+}
