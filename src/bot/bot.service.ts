@@ -12,7 +12,7 @@ import internal from 'stream'
 import fs from 'fs'
 import path from 'path'
 import { FsService } from '../fs/fs.service'
-
+import { isItYourName } from './utils/keyboard'
 
 dotenv.config()
 
@@ -32,7 +32,6 @@ interface HandledResponse {
 	username: string
 	messageId: number
 }
-
 
 @Injectable()
 export class BotService implements OnModuleInit {
@@ -135,9 +134,10 @@ export class BotService implements OnModuleInit {
 			() =>
 				this.sendMessage(`<b><i><u>Bunny Girl</u></i></b>
 У тебя правда такое имя?`),
-			() => this.sendMessage(`${input}`),
+			() => this.sendMessage(`${input}`, isItYourName().options),
 		])
 		this.setTempMessageIdList([...tgResponses])
+		this.intervalTimerList.map((itl) => clearInterval(itl))
 
 		this.setWaitingNicknameStatus(false)
 	}
@@ -211,6 +211,9 @@ export class BotService implements OnModuleInit {
 	// 	}
 	// 	return { feedTo }
 	// }
+
+	private getTempIntervalTimerList = () => this.intervalTimerList
+
 	private setTempIntervalTimerList = (intervalTimerList: NodeJS.Timer[]) =>
 		intervalTimerList.map((intervalTimer) =>
 			this.intervalTimerList.push(intervalTimer),
