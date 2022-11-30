@@ -63,6 +63,12 @@ export class BotService implements OnModuleInit {
 		this.bot.on('polling_error', (err) => console.log(err))
 	}
 
+	private handleCallBackQuery = () => {
+		this.bot.on('callback_query', async (query) => {
+			const data = query.data
+		})
+	}
+
 	private mapHandler = ({
 		command,
 		handler,
