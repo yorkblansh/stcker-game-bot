@@ -13,6 +13,7 @@ import fs from 'fs'
 import path from 'path'
 import { FsService } from '../fs/fs.service'
 
+
 dotenv.config()
 
 type GETSET = 'get' | 'set'
@@ -32,7 +33,6 @@ interface HandledResponse {
 	messageId: number
 }
 
-type kk = () => void
 
 @Injectable()
 export class BotService implements OnModuleInit {
@@ -135,7 +135,7 @@ export class BotService implements OnModuleInit {
 			() =>
 				this.sendMessage(`<b><i><u>Bunny Girl</u></i></b>
 У тебя правда такое имя?`),
-			() => this.sendMessage(`${input}`,),
+			() => this.sendMessage(`${input}`),
 		])
 		this.setTempMessageIdList([...tgResponses])
 
