@@ -4,7 +4,7 @@ import { HttpService } from '@nestjs/axios'
 import { FetcherService } from '../fetcher/fetcher.service'
 import { createClient } from 'redis'
 import pEachSeries from 'p-each-series'
-import { pipe } from 'fp-ts/function'
+import { pipe } from 'fp-ts/lib/function'
 import * as dotenv from 'dotenv' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
 import { sticker } from './utils/stickers'
 import { Either, right, left } from '@sweet-monads/either'
@@ -40,6 +40,7 @@ export class BotService implements OnModuleInit {
 	private httpRequest: FetcherService['httpRequest']
 	private handledResponse: HandledResponse
 	private tempMessageIdList: string[] = []
+	private intervalTimerList: NodeJS.Timer[] = []
 
 	constructor(
 		@Inject('REDIS_CLIENT') private readonly redis: RedisClient,
@@ -101,7 +102,7 @@ export class BotService implements OnModuleInit {
 		})
 
 		this.mapHandler({
-			command: /[a-z]/,
+			command: /^[a-zA-Z]+$/,
 			handler: this.chooseNicknameHandler,
 			screenStateMonad: this.getWaitingNicknameStatus,
 		})
@@ -117,6 +118,7 @@ export class BotService implements OnModuleInit {
 			screenStateMonad: () => new Promise((res) => res(right(true))),
 		})
 	}
+
 	private setStartOn = () => this.setWaitingStartHelloStatus(true)
 	private setStartOff = () => this.setWaitingStartHelloStatus(false)
 
@@ -131,26 +133,27 @@ export class BotService implements OnModuleInit {
 		const tgResponses = await this.pipeTelegramMessage([
 			() => this.sendSticker(sticker.nice_bunny),
 			() =>
-				this.sendMessage(`<b><i>Bunny Girl</i></b>
+				this.sendMessage(`<b><i><u>Bunny Girl</u></i></b>
 У тебя правда такое имя?`),
-			() => this.sendMessage(`${input}`),
+			() => this.sendMessage(`${input}`,),
 		])
+		this.setTempMessageIdList([...tgResponses])
 
 		this.setWaitingNicknameStatus(false)
 	}
 
 	private hellowMessageHandler = async (hr: HandledResponse) => {
-		const { messageId } = this.handledResponse
-		this.deleteMessage(messageId)
+		const { messageId: userMessageId } = this.handledResponse
+		this.deleteMessage(userMessageId)
 		const tgResponses = await this.pipeTelegramMessage([
 			() => this.sendPhoto(this.fsService.getHelloImg()),
 			() =>
 				this.sendMessage(
 					`<b>Добро пожаловать в Sticker Fights!</b>  
-<i>Мир полный приключений.</i> 
-Испытай свою удачу 🎲  
-Брось вызов другим игрокам ⚔  
+<i>Мир полный приключений.</i>   
+Бросай вызов другим игрокам ⚔  
 Заводи новые знакомства, 🤝  
+Испытай свою удачу 🎲
 <b><u>НЕ УПУСТИ СВОЙ ШАНС</u></b>`,
 				),
 			() => this.sendSticker(sticker.bunny_hellow),
@@ -161,10 +164,21 @@ export class BotService implements OnModuleInit {
 				),
 		])
 
+		const { message_id: recycledMessageId, intervalTimer } =
+			await this.sendRecycledMessage(500, [
+				`⚠️введите имя⚠️`,
+				`👇введите имя👇`,
+			])
+
 		this.setTempChatId()
 		this.setWaitingNicknameStatus(true)
 		this.setWaitingAvatarStatus(false)
-		this.setTempMessageIdList(tgResponses)
+		this.setTempMessageIdList([
+			...tgResponses,
+			userMessageId.toString(),
+			recycledMessageId,
+		])
+		this.setTempIntervalTimerList([intervalTimer])
 	}
 
 	private pipeTelegramMessage = async (
@@ -197,10 +211,51 @@ export class BotService implements OnModuleInit {
 	// 	}
 	// 	return { feedTo }
 	// }
+	private setTempIntervalTimerList = (intervalTimerList: NodeJS.Timer[]) =>
+		intervalTimerList.map((intervalTimer) =>
+			this.intervalTimerList.push(intervalTimer),
+		)
 
-	private sendMessage = (text: string) =>
+	private sendRecycledMessage = async (
+		msInterval: number,
+		messageList: string[],
+		firstMessage?: string,
+	) => {
+		const tgBotMessage = await pipe(
+			firstMessage ? firstMessage : messageList[0],
+			this.sendMessage,
+		)
+		let cc = 0
+		const intervalTimer = setInterval(async () => {
+			const message = messageList[cc]
+			console.log({ cc, message })
+			pipe(tgBotMessage.message_id, this.editMessage(message))
+			if (cc + 1 < messageList.length) cc++
+			else cc = 0
+		}, msInterval)
+		setTimeout(() => clearInterval(intervalTimer), 100000)
+
+		return { ...tgBotMessage, intervalTimer }
+	}
+
+	private editMessage = (text: string) => (messageId: string | number) =>
+		this.bot.editMessageText(text, {
+			parse_mode: 'HTML',
+			message_id: parseInt(messageId.toString()),
+			chat_id: this.handledResponse.chatId,
+		})
+
+	// (this.handledResponse.chatId, text, {
+	// 	parse_mode: 'HTML',
+	// })
+
+	private sendMessage = (
+		text: string,
+		options?: TelegramBot.SendMessageOptions,
+	) =>
 		this.bot.sendMessage(this.handledResponse.chatId, text, {
 			parse_mode: 'HTML',
+			...options,
 		})
 
 	private sendPhoto = (photo: string | internal.Stream | Buffer) =>
@@ -214,10 +269,13 @@ export class BotService implements OnModuleInit {
 	private sendSticker = (sticker: string) =>
 		this.bot.sendSticker(this.handledResponse.chatId, sticker)
 
-	private setTempMessageIdList = (messageIdList: string[] | number[]) =>
+	private setTempMessageIdList = (messageIdList: (string | number)[]) => {
 		messageIdList.map((messageId) =>
 			this.tempMessageIdList.push(messageId.toString()),
 		)
+
+		return this.setTempMessageIdList
+	}
 
 	private pruneMessageIdList = () => {
 		this.tempMessageIdList = []

@@ -12,7 +12,7 @@ const __dirname = dirname(__filename)
 export class FsService {
 	getHelloImg = () =>
 		pipe(
-			this.carryPathJoin('../src/assets/imgs/sticker_fights.jpg'),
+			this.carryPathJoin('../src/assets/imgs/bunny_hello_black.jpg'),
 			fs.createReadStream,
 		)
 
