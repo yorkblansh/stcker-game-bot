@@ -5,4 +5,6 @@ export const sticker = {
 		'CAACAgIAAxkBAAEacCNjhR2EtbIY3x0obbM4sN4Cje-wmgACRgQAAsxUSQkJow-DWqQ5tSsE',
 	breaking_hart_bunny:
 		'CAACAgIAAxkBAAEaiHZjiHp4thP_NZ50PBHp-qC_v0tYngACQgQAAsxUSQkbJ3A-VjABIysE',
+	reject_bunny:
+		'CAACAgIAAxkBAAEaiZpjiJnVUQwrhBo0ciIBYJE3m4aHLAACUAQAAsxUSQlxXF2Vgh-lZSsE',
 }
