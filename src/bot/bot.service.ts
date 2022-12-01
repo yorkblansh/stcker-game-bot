@@ -12,7 +12,7 @@ import internal from 'stream'
 import fs from 'fs'
 import path from 'path'
 import { FsService } from '../fs/fs.service'
-import { isItYourName } from './utils/keyboard'
+import { isItYourName, NameConfirmation } from './utils/keyboard'
 
 dotenv.config()
 
@@ -60,14 +60,38 @@ export class BotService implements OnModuleInit {
 
 	handleCommands() {
 		this.handleClient()
+		this.handleCallBackQuery()
 		this.bot.on('polling_error', (err) => console.log(err))
 	}
 
-	private handleCallBackQuery = () => {
-		this.bot.on('callback_query', async (query) => {
-			const data = query.data
-		})
+	private handleCallBackQuery = () =>
+		this.bot.on('callback_query', this.mapQueryData)
+
+	private mapQueryData = (query: TelegramBot.CallbackQuery) => {
+		const queryDataHandlersMap = {
+			[NameConfirmation.generic]: this.nameConfirmationHandler(query),
+		}
+		const index = query.data.split('.')[0]
+		return queryDataHandlersMap[index][query.data]()
 	}
+
+	private nameConfirmationHandler = (query: TelegramBot.CallbackQuery) => ({
+		[NameConfirmation.yes]: async () => {},
+		[NameConfirmation.no]: async () => {
+			await this.pipeTelegramMessage([
+				() => this.sendSticker(sticker.breaking_hart_bunny),
+				() =>
+					this.sendMessage(`<b><i><u>Bunny Girl</u></i></b>
+					Ну хорошо, скажи настоящее и я подумаю простить ли тебя`),
+			])
+
+			const { message_id: recycledMessageId, intervalTimer } =
+				await this.sendRecycledMessage(500, [
+					`⚠️введите имя⚠️`,
+					`👇введите имя👇`,
+				])
+		},
+	})
 
 	private mapHandler = ({
 		command,
