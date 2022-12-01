@@ -5,9 +5,10 @@ import {
 	InlineKeyboardButton,
 } from 'node-telegram-keyboard-wrapper'
 
-enum NameConfirmation {
-	yes = 'yes',
-	no = 'no',
+export enum NameConfirmation {
+	generic = 'name_confirmation',
+	yes = 'name_confirmation.yes',
+	no = 'name_confirmation.no',
 }
 
 export const isItYourName = () => {
