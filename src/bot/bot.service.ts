@@ -60,12 +60,9 @@ export class BotService implements OnModuleInit {
 
 	handleCommands() {
 		this.handleClient()
-		this.handleCallBackQuery()
+		this.bot.on('callback_query', this.mapQueryData)
 		this.bot.on('polling_error', (err) => console.log(err))
 	}
-
-	private handleCallBackQuery = () =>
-		this.bot.on('callback_query', this.mapQueryData)
 
 	private mapQueryData = (query: TelegramBot.CallbackQuery) => {
 		const queryDataHandlersMap = {
@@ -76,13 +73,17 @@ export class BotService implements OnModuleInit {
 	}
 
 	private nameConfirmationHandler = (query: TelegramBot.CallbackQuery) => ({
-		[NameConfirmation.yes]: async () => {},
+		[NameConfirmation.yes]: async () => {
+			this.setWaitingNicknameStatusRepeated(false)
+		},
 		[NameConfirmation.no]: async () => {
-			await this.pipeTelegramMessage([
+			this.tempMessageIdList.map(this.deleteMessage)
+			this.pruneMessageIdList()
+			const tgResponses = await this.pipeTelegramMessage([
 				() => this.sendSticker(sticker.breaking_hart_bunny),
 				() =>
 					this.sendMessage(`<b><i><u>Bunny Girl</u></i></b>
-					Ну хорошо, скажи настоящее и я подумаю простить ли тебя`),
+Ну хорошо, скажи настоящее и я подумаю простить ли тебя`),
 			])
 
 			const { message_id: recycledMessageId, intervalTimer } =
@@ -90,6 +91,10 @@ export class BotService implements OnModuleInit {
 					`⚠️введите имя⚠️`,
 					`👇введите имя👇`,
 				])
+			this.setWaitingNicknameStatusRepeated(true)
+			this.setTempMessageIdList([...tgResponses, recycledMessageId])
+			this.setTempIntervalTimerList([intervalTimer])
+			this.setWaitingNicknameStatus(true)
 		},
 	})
 
@@ -153,26 +158,39 @@ export class BotService implements OnModuleInit {
 
 	private chooseNicknameHandler = async () => {
 		const { input, messageId: userMessageId } = this.handledResponse
-		this.getTempMessageIdList().map((messageId) => {
-			this.deleteMessage(messageId)
-		})
+		this.getWaitingNicknameStatusRepeated().then(
+			(eitherNicknameChooseRepeated) =>
+				eitherNicknameChooseRepeated
+					.mapRight(async (isRepeated) => {
+						const tgResponses = await this.pipeTelegramMessage([
+							() => this.sendSticker(sticker.reject_bunny),
+							() =>
+								this.sendMessage(`<b><i><u>Bunny Girl</u></i></b>
+Это точно твое имя?`),
+							() => this.sendMessage(`${input}`, isItYourName().options),
+						])
+						this.setTempMessageIdList([...tgResponses])
+					})
+					.mapLeft(async (isFirstChoose) => {
+						const tgResponses = await this.pipeTelegramMessage([
+							() => this.sendSticker(sticker.nice_bunny),
+							() =>
+								this.sendMessage(`<b><i><u>Bunny Girl</u></i></b>
+У тебя правда такое имя?`),
+							() => this.sendMessage(`${input}`, isItYourName().options),
+						])
+						this.setTempMessageIdList([...tgResponses])
+					}),
+		)
+		this.tempMessageIdList.map(this.deleteMessage)
 		this.pruneMessageIdList()
 		this.deleteMessage(userMessageId)
-
-		const tgResponses = await this.pipeTelegramMessage([
-			() => this.sendSticker(sticker.nice_bunny),
-			() =>
-				this.sendMessage(`<b><i><u>Bunny Girl</u></i></b>
-У тебя правда такое имя?`),
-			() => this.sendMessage(`${input}`, isItYourName().options),
-		])
-		this.setTempMessageIdList([...tgResponses])
 		this.intervalTimerList.map(clearInterval)
-
 		this.setWaitingNicknameStatus(false)
 	}
 
 	private hellowMessageHandler = async (hr: HandledResponse) => {
+		this.setWaitingNicknameStatusRepeated(false)
 		const { messageId: userMessageId } = this.handledResponse
 		this.deleteMessage(userMessageId)
 		const tgResponses = await this.pipeTelegramMessage([
@@ -189,8 +207,8 @@ export class BotService implements OnModuleInit {
 			() => this.sendSticker(sticker.bunny_hellow),
 			() =>
 				this.sendMessage(
-					`<b><i>Bunny Girl</i></b> 
-Вижу новое лицо в нашем скромном местечке, как тебя зовут?`,
+					`<b><i><u>Bunny Girl</u></i></b>
+Оу, вижу новое лицо в нашем скромном местечке, как тебя зовут?`,
 				),
 		])
 
@@ -346,6 +364,21 @@ export class BotService implements OnModuleInit {
 	private setWaitingStartHelloStatus = (status: boolean) =>
 		this.redis.set(
 			`${this.handledResponse.username}-waiting_start_hello`,
+			this.rus(status),
+		)
+
+	private getWaitingNicknameStatusRepeated = async (): Promise<
+		Either<boolean, boolean>
+	> => {
+		const str = await this.redis.get(
+			`${this.handledResponse.username}-waiting_nickname_repeated`,
+		)
+		return str && str === '22' ? right(true) : left(false)
+	}
+
+	private setWaitingNicknameStatusRepeated = (status: boolean) =>
+		this.redis.set(
+			`${this.handledResponse.username}-waiting_nickname_repeated`,
 			this.rus(status),
 		)
 
