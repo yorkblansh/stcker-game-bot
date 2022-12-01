@@ -167,7 +167,7 @@ export class BotService implements OnModuleInit {
 			() => this.sendMessage(`${input}`, isItYourName().options),
 		])
 		this.setTempMessageIdList([...tgResponses])
-		this.intervalTimerList.map((itl) => clearInterval(itl))
+		this.intervalTimerList.map(clearInterval)
 
 		this.setWaitingNicknameStatus(false)
 	}
