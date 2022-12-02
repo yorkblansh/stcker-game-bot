@@ -16,6 +16,7 @@ import {
 	isItYourNameKBD,
 	NameConfirmation,
 } from './utils/keyboards/isItYourNameKBD'
+import { locationKBD } from './utils/keyboards/locationKBD'
 
 dotenv.config()
 
@@ -75,7 +76,7 @@ export class BotService implements OnModuleInit {
 		return queryDataHandlersMap[index][query.data]()
 	}
 
-	private menuSlidesHandler = async () => {
+	private villageHintMessage = async () => {
 		const locationInfoMID = await this.pipeTelegramMessage([
 			() => this.sendSticker(sticker.bunny_legs),
 			() =>
@@ -86,18 +87,27 @@ Village - скромный городишко, в котором осталос�
 
 		setTimeout(() => {
 			locationInfoMID.map(this.deleteMessage)
-		}, 5000)
+		}, 10000)
+	}
+
+	private menuSlidesHandler = async () => {
+		await this.villageHintMessage()
 
 		const locationStuffMID = await this.pipeTelegramMessage([
 			() =>
-				this.sendMessage(`🗺️ Локация: Village🌄
+				this.sendMessage(
+					`🗺️ Локация: Village🌄
 🏟 Арена: ViArana - 🆓
-🏪 Магазин: Farm - 🆓`),
+🏪 Магазин: Farm - 🆓`,
+					locationKBD({ middleButton: `🌚` }).options,
+				),
 		])
 	}
 
 	private nameConfirmationHandler = (query: TelegramBot.CallbackQuery) => ({
 		[NameConfirmation.yes]: async () => {
+			this.tempMessageIdList.map(this.deleteMessage)
+			this.pruneMessageIdList()
 			this.setWaitingNicknameStatusRepeated(false)
 			this.menuSlidesHandler()
 		},
@@ -161,7 +171,7 @@ Village - скромный городишко, в котором осталос�
 		})
 
 		this.mapHandler({
-			command: /^[a-zA-Z]+$/,
+			command: /^[a-zA-Zа-яА-ЯёЁ]+$/,
 			handler: this.chooseNicknameHandler,
 			screenStateMonad: this.getWaitingNicknameStatus,
 		})
