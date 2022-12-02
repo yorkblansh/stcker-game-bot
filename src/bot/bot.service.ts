@@ -12,7 +12,7 @@ import internal from 'stream'
 import fs from 'fs'
 import path from 'path'
 import { FsService } from '../fs/fs.service'
-import { isItYourName, NameConfirmation } from './utils/keyboard'
+import { isItYourNameKBD, NameConfirmation } from './utils/keyboard'
 
 dotenv.config()
 
@@ -72,9 +72,31 @@ export class BotService implements OnModuleInit {
 		return queryDataHandlersMap[index][query.data]()
 	}
 
+	private menuSlidesHandler = async () => {
+		const locationInfoMID = await this.pipeTelegramMessage([
+			() => this.sendSticker(sticker.bunny_legs),
+			() =>
+				this.sendMessage(`<b><i><u>Bunny Girl</u></i></b>
+Village - скромный городишко, в котором осталось преимущественно местное население.
+В основном - тут нечем заняться, здесь рай для тех, кто устал от городской суеты, где постоянно кто-то куда-то спешит.`),
+		])
+
+		setTimeout(() => {
+			locationInfoMID.map(this.deleteMessage)
+		}, 5000)
+
+		const locationStuffMID = await this.pipeTelegramMessage([
+			() =>
+				this.sendMessage(`🗺️ Локация: Village🌄
+🏟 Арена: ViArana - 🆓
+🏪 Магазин: Farm - 🆓`, ),
+		])
+	}
+
 	private nameConfirmationHandler = (query: TelegramBot.CallbackQuery) => ({
 		[NameConfirmation.yes]: async () => {
 			this.setWaitingNicknameStatusRepeated(false)
+			this.menuSlidesHandler()
 		},
 		[NameConfirmation.no]: async () => {
 			this.tempMessageIdList.map(this.deleteMessage)
@@ -167,7 +189,7 @@ export class BotService implements OnModuleInit {
 							() =>
 								this.sendMessage(`<b><i><u>Bunny Girl</u></i></b>
 Это точно твое имя?`),
-							() => this.sendMessage(`${input}`, isItYourName().options),
+							() => this.sendMessage(`${input}`, isItYourNameKBD().options),
 						])
 						this.setTempMessageIdList([...tgResponses])
 					})
@@ -177,7 +199,7 @@ export class BotService implements OnModuleInit {
 							() =>
 								this.sendMessage(`<b><i><u>Bunny Girl</u></i></b>
 У тебя правда такое имя?`),
-							() => this.sendMessage(`${input}`, isItYourName().options),
+							() => this.sendMessage(`${input}`, isItYourNameKBD().options),
 						])
 						this.setTempMessageIdList([...tgResponses])
 					}),

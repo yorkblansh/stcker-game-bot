@@ -7,4 +7,6 @@ export const sticker = {
 		'CAACAgIAAxkBAAEaiHZjiHp4thP_NZ50PBHp-qC_v0tYngACQgQAAsxUSQkbJ3A-VjABIysE',
 	reject_bunny:
 		'CAACAgIAAxkBAAEaiZpjiJnVUQwrhBo0ciIBYJE3m4aHLAACUAQAAsxUSQlxXF2Vgh-lZSsE',
+	bunny_legs:
+		'CAACAgIAAxkBAAEakSFjieMtJiGPSd7Dn8LmPvj3B5ABGQACRAQAAsxUSQm_fwr0h1sdvisE',
 }

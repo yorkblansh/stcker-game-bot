@@ -11,7 +11,7 @@ export enum NameConfirmation {
 	no = 'name_confirmation.no',
 }
 
-export const isItYourName = () => {
+export const isItYourNameKBD = () => {
 	const keyboard = new InlineKeyboard()
 	keyboard.push(
 		/**
