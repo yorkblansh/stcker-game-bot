@@ -12,7 +12,10 @@ import internal from 'stream'
 import fs from 'fs'
 import path from 'path'
 import { FsService } from '../fs/fs.service'
-import { isItYourNameKBD, NameConfirmation } from './utils/isItYourNameKBD'
+import {
+	isItYourNameKBD,
+	NameConfirmation,
+} from './utils/keyboards/isItYourNameKBD'
 
 dotenv.config()
 
@@ -89,7 +92,7 @@ Village - скромный городишко, в котором осталос�
 			() =>
 				this.sendMessage(`🗺️ Локация: Village🌄
 🏟 Арена: ViArana - 🆓
-🏪 Магазин: Farm - 🆓`, ),
+🏪 Магазин: Farm - 🆓`),
 		])
 	}
 
