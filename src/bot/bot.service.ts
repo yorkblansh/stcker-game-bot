@@ -453,32 +453,3 @@ Village - скромный городишко, в котором осталос�
 		return status ? 22 : 11
 	}
 }
-
-class ExecutorPool {
-	private _size: number
-
-	constructor(size: number) {
-		if (size < 1)
-			throw new Error('[ExecutorPool] Размер очереди меньше единицы.')
-		this._size = size
-	}
-
-	async execute(tasks: Promise<any>[]) {
-		const results = Array(tasks.length)
-		const executors = Array(this._size)
-			.fill(null)
-			.map((e, executorId) => async (taskPool) => {
-				while (true) {
-					const task = taskPool.pop()
-					if (!task) break
-
-					const index = taskPool.length
-					results[index] = await task()
-					console.log(JSON.stringify({ taskId: results[index], executorId }))
-				}
-			})
-		const taskPool = [...tasks]
-		await Promise.all(executors.map((executor) => executor(taskPool)))
-		return results
-	}
-}
