@@ -12,7 +12,7 @@ import internal from 'stream'
 import fs from 'fs'
 import path from 'path'
 import { FsService } from '../fs/fs.service'
-import { isItYourNameKBD, NameConfirmation } from './utils/keyboard'
+import { isItYourNameKBD, NameConfirmation } from './utils/isItYourNameKBD'
 
 dotenv.config()
 
