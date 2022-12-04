@@ -1,8 +1,5 @@
-import { HandledResponse, RedisClient } from './bot.service'
 import { Either, right, left } from '@sweet-monads/either'
-import TelegramBot from 'node-telegram-bot-api'
-import internal from 'stream'
-import { pipe } from 'fp-ts/lib/function'
+import { RedisClient } from '../bot.service'
 
 type GETSET = 'get' | 'set'
 
@@ -31,14 +28,11 @@ function rus(
 		return JSON.stringify(value.map((v) => v.toString()))
 }
 
-export class UserContext {
+export class DBFactory {
 	constructor(
-		private readonly bot: TelegramBot,
 		private readonly redis: RedisClient,
-		public hr: HandledResponse,
-	) {
-		const y = this.nickname('get')
-	}
+		private readonly username: string,
+	) {}
 
 	private dbMethodsFactory = <
 		WIN extends 'getMonad' | 'getString',
@@ -49,7 +43,7 @@ export class UserContext {
 		monadPredicatCB?: (arg: any) => any,
 	) => {
 		const redis = this.redis
-		const redisArg = this.hr.username + postfix
+		const redisArg = this.username + postfix
 		function fn(
 			queryType: 'set',
 			value: boolean | string | number | (number | string | NodeJS.Timer)[],
@@ -77,11 +71,6 @@ export class UserContext {
 
 		return fn
 	}
-
-	// private setTempIntervalTimerList = (intervalTimerList: NodeJS.Timer[]) =>
-	// 	intervalTimerList.map((intervalTimer) =>
-	// 		this.intervalTimerList.push(intervalTimer),
-	// 	)
 
 	tempChatId = this.dbMethodsFactory('-temp_chat_id', 'getString')
 	nickname = this.dbMethodsFactory('-nickname', 'getString')
@@ -113,81 +102,4 @@ export class UserContext {
 		'-interval-timer-list',
 		'getString',
 	)
-
-	editMessage = (text: string) => async (messageId: string | number) => {
-		try {
-			this.bot.editMessageText(text, {
-				parse_mode: 'HTML',
-				message_id: parseInt(messageId.toString()),
-				chat_id: await this.tempChatId('get'),
-			})
-		} catch (error) {
-			console.log(error)
-		}
-	}
-
-	sendMessage = async (
-		text: string,
-		options?: TelegramBot.SendMessageOptions,
-	) =>
-		this.bot.sendMessage(await this.tempChatId('get'), text, {
-			parse_mode: 'HTML',
-			...options,
-		})
-
-	sendPhoto = async (photo: string | internal.Stream | Buffer) =>
-		this.bot.sendPhoto(await this.tempChatId('get'), photo)
-
-	deleteMessage = async (id: string | number) => {
-		console.log('message deleted')
-		this.bot.deleteMessage(await this.tempChatId('get'), id.toString())
-	}
-
-	sendSticker = async (sticker: string) =>
-		this.bot.sendSticker(await this.tempChatId('get'), sticker)
-
-	sendRecycledMessage = async (
-		msInterval: number,
-		messageList: string[],
-		firstMessage?: string,
-	) => {
-		const tgBotMessage = await pipe(
-			firstMessage ? firstMessage : messageList[0],
-			this.sendMessage,
-		)
-		let cc = 0
-		const intervalTimer = setInterval(async () => {
-			const message = messageList[cc]
-			console.log({ cc, message })
-			try {
-				this.editMessage(message)(tgBotMessage.message_id)
-			} catch (error) {
-				console.log(error)
-			}
-
-			if (cc + 1 < messageList.length) cc++
-			else cc = 0
-		}, msInterval)
-		setTimeout(() => clearInterval(intervalTimer), 100000)
-
-		return { ...tgBotMessage, intervalTimer }
-	}
-
-	/**
-	 * Redis Util Status
-	 */
-
-	// private redisQuery=()=>{
-
-	// }
 }
-
-// <
-// 			QT extends GETSET,
-// 			MP extends typeof monadPredicat,
-// 			ReturnType = QT extends 'get'
-// 				? MP extends undefined
-// 					? Promise<string>
-// 					: Promise<Either<boolean, boolean>>
-// 				: Promise<string>,
-// 		>

@@ -6,14 +6,13 @@ import { createClient } from 'redis'
 import pEachSeries from 'p-each-series'
 import * as dotenv from 'dotenv' // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
 import { sticker } from './utils/stickers'
-import { Either, right, left } from '@sweet-monads/either'
 import { FsService } from '../fs/fs.service'
 import {
 	isItYourNameKBD,
 	NameConfirmation,
 } from './utils/keyboards/isItYourNameKBD'
 import { locationKBD } from './utils/keyboards/locationKBD'
-import { UserContext } from './userContext'
+import { UserContext } from './utils/userContext'
 
 dotenv.config()
 
@@ -34,10 +33,6 @@ export interface HandledResponse {
 @Injectable()
 export class BotService implements OnModuleInit {
 	private bot: TelegramBot
-	private httpRequest: FetcherService['httpRequest']
-	private handledResponse: HandledResponse
-	private tempMessageIdList: string[] = []
-	private intervalTimerList: NodeJS.Timer[] = []
 
 	constructor(
 		@Inject('REDIS_CLIENT') private readonly redis: RedisClient,
@@ -108,16 +103,16 @@ Village - скромный городишко, в котором осталос�
 	private nameConfirmationHandler = (query: TelegramBot.CallbackQuery) => ({
 		[NameConfirmation.yes]: async (uc: UserContext) => {
 			const tempMessageIdList = JSON.parse(
-				await uc.tempMessageIdList('get'),
+				await uc.db.tempMessageIdList('get'),
 			) as string[]
 			tempMessageIdList.map(uc.deleteMessage)
 
-			uc.nicknameStatusRepeated('set', false)
+			uc.db.nicknameStatusRepeated('set', false)
 			this.menuSlidesHandler(uc)
 		},
 		[NameConfirmation.no]: async (uc: UserContext) => {
 			const tempMessageIdList = JSON.parse(
-				await uc.tempMessageIdList('get'),
+				await uc.db.tempMessageIdList('get'),
 			) as string[]
 			tempMessageIdList.map(uc.deleteMessage)
 			const tgResponses = await this.pipeTelegramMessage([
@@ -132,11 +127,11 @@ Village - скромный городишко, в котором осталос�
 					`⚠️введите имя⚠️`,
 					`👇введите имя👇`,
 				])
-			uc.nicknameStatusRepeated('set', true)
-			uc.tempMessageIdList('set', [...tgResponses, recycledMessageId])
+			uc.db.nicknameStatusRepeated('set', true)
+			uc.db.tempMessageIdList('set', [...tgResponses, recycledMessageId])
 
-			uc.tempIntervalTimerList('set', [intervalTimer])
-			uc.nicknameStatus('set', true)
+			uc.db.tempIntervalTimerList('set', [intervalTimer])
+			uc.db.nicknameStatus('set', true)
 		},
 	})
 
@@ -155,7 +150,7 @@ Village - скромный городишко, в котором осталос�
 				messageId: msg.message_id,
 			}
 			const uc = new UserContext(this.bot, this.redis, hr)
-			uc.tempChatId('set', hr.chatId)
+			uc.db.tempChatId('set', hr.chatId)
 
 			const isInputValid =
 				input !== undefined || input !== null || input || input !== ''
@@ -186,12 +181,13 @@ Village - скромный городишко, в котором осталос�
 		})
 	}
 
-	private setStartOn = (uc: UserContext) => uc.startHelloStatus('set', true)
-	private setStartOff = (uc: UserContext) => uc.startHelloStatus('set', false)
+	private setStartOn = (uc: UserContext) => uc.db.startHelloStatus('set', true)
+	private setStartOff = (uc: UserContext) =>
+		uc.db.startHelloStatus('set', false)
 
 	private chooseNicknameHandler = async (uc: UserContext) => {
 		const { input, messageId: userMessageId } = uc.hr
-		uc.nicknameStatusRepeated('get').then((eitherNicknameChooseRepeated) =>
+		uc.db.nicknameStatusRepeated('get').then((eitherNicknameChooseRepeated) =>
 			eitherNicknameChooseRepeated
 				.mapRight(async (isRepeated) => {
 					const tgResponses = await this.pipeTelegramMessage([
@@ -201,7 +197,7 @@ Village - скромный городишко, в котором осталос�
 Это точно твое имя?`),
 						() => uc.sendMessage(`${input}`, isItYourNameKBD().options),
 					])
-					uc.tempMessageIdList('set', [...tgResponses])
+					uc.db.tempMessageIdList('set', [...tgResponses])
 				})
 				.mapLeft(async (isFirstChoose) => {
 					const tgResponses = await this.pipeTelegramMessage([
@@ -211,28 +207,28 @@ Village - скромный городишко, в котором осталос�
 У тебя правда такое имя?`),
 						() => uc.sendMessage(`${input}`, isItYourNameKBD().options),
 					])
-					uc.tempMessageIdList('set', [...tgResponses])
+					uc.db.tempMessageIdList('set', [...tgResponses])
 				}),
 		)
 		const tempMessageIdList = JSON.parse(
-			await uc.tempMessageIdList('get'),
+			await uc.db.tempMessageIdList('get'),
 		) as string[]
 		tempMessageIdList.map(uc.deleteMessage)
 
-		uc.tempMessageIdList('set', '')
+		uc.db.tempMessageIdList('set', '')
 		uc.deleteMessage(userMessageId)
 
 		const tempIntervalTimerList = JSON.parse(
-			await uc.tempIntervalTimerList('get'),
+			await uc.db.tempIntervalTimerList('get'),
 		) as string[]
 		tempIntervalTimerList.map(clearInterval)
 
-		uc.nicknameStatus('set', false)
+		uc.db.nicknameStatus('set', false)
 	}
 
 	private hellowMessageHandler = async (uc: UserContext) =>
-		(await uc.startHelloStatus('get')).mapRight(async () => {
-			uc.nicknameStatusRepeated('set', false)
+		(await uc.db.startHelloStatus('get')).mapRight(async () => {
+			uc.db.nicknameStatusRepeated('set', false)
 			const { messageId: userMessageId } = uc.hr
 			uc.deleteMessage(userMessageId)
 			const tgResponses = await this.pipeTelegramMessage([
@@ -260,14 +256,14 @@ Village - скромный городишко, в котором осталос�
 					`👇введите имя👇`,
 				])
 
-			uc.nicknameStatus('set', true)
-			uc.avatarStatus('set', false)
-			uc.tempMessageIdList('set', [
+			uc.db.nicknameStatus('set', true)
+			uc.db.avatarStatus('set', false)
+			uc.db.tempMessageIdList('set', [
 				...tgResponses,
 				userMessageId,
 				recycledMessageId,
 			])
-			uc.tempIntervalTimerList('set', [intervalTimer])
+			uc.db.tempIntervalTimerList('set', [intervalTimer])
 		})
 
 	private pipeTelegramMessage = async (
