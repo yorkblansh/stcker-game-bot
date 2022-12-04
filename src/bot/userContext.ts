@@ -1,53 +1,80 @@
 import { HandledResponse, RedisClient } from './bot.service'
+import { Either, right, left } from '@sweet-monads/either'
 
 type GETSET = 'get' | 'set'
 
+enum Postfix {
+	'-temp_chat_id' = '-temp_chat_id',
+}
+
+function monadPredicat(str: string) {
+	return str && str === '22'
+}
+
 export class UserContext {
+	private username: string
+
 	constructor(
 		private readonly redis: RedisClient,
 		private hr: HandledResponse,
 	) {
-		this.tempChatId('get')
+		const y = this.tempChatId('get')
 	}
 
-	private curryTempChatId = (redis: RedisClient) => {
-		function tempChatId(fqueryType: 'set', value: string): Promise<string>
-		function tempChatId(queryType: 'get'): Promise<string>
-		function tempChatId(queryType: GETSET, value?: string): Promise<string> {
-			const kk: { [each in GETSET]: () => Promise<string> } = {
-				get: async () =>
-					await redis.get(`${this.handledResponse.username}-temp_chat_id`),
-				set: async () => await redis.set('', value as string),
+	private curryRedisGetSet = <
+		WIN extends 'getMonad' | 'getString',
+		MP extends typeof monadPredicat,
+		GetReturnType = WIN extends 'getMonad' ? Either<boolean, boolean> : string,
+	>(
+		redis: RedisClient,
+		postfix: keyof typeof Postfix,
+		whatIsNeed: WIN,
+		monadPredicatCB?: MP,
+	) => {
+		const redisArg = this.username + postfix
+		function fn(queryType: 'set', value: string): Promise<string>
+		function fn(queryType: 'get'): Promise<GetReturnType>
+		function fn<
+			QT extends GETSET,
+			RT = QT extends 'get' ? Promise<GetReturnType> : Promise<string>,
+		>(queryType: GETSET, value?: string): RT {
+			const method = {
+				get: async () => {
+					const str = await redis.get(redisArg)
+					return (
+						monadPredicatCB
+							? monadPredicatCB(str)
+								? right(true)
+								: left(false)
+							: str
+					) as GetReturnType
+				},
+				set: async () => await redis.set(redisArg, value as string),
 			}
-			return kk[queryType]()
+			return method[queryType]() as RT
 		}
 
-		return tempChatId
+		return fn
 	}
 
-	private curryNickname = (redis: RedisClient) => {
-		function tempChatId(fqueryType: 'set', value: string): Promise<string>
-		function tempChatId(queryType: 'get'): Promise<string>
-		function tempChatId(queryType: GETSET, value?: string): Promise<string> {
-			const kk: { [each in GETSET]: () => Promise<string> } = {
-				get: async () =>
-					await redis.get(`${this.handledResponse.username}-temp_chat_id`),
-				set: async () => await redis.set('', value as string),
-			}
-			return kk[queryType]()
-		}
+	// private setTempIntervalTimerList = (intervalTimerList: NodeJS.Timer[]) =>
+	// 	intervalTimerList.map((intervalTimer) =>
+	// 		this.intervalTimerList.push(intervalTimer),
+	// 	)
 
-		return tempChatId
-	}
-
-	private setTempIntervalTimerList = (intervalTimerList: NodeJS.Timer[]) =>
-		intervalTimerList.map((intervalTimer) =>
-			this.intervalTimerList.push(intervalTimer),
-		)
-
-	private tempChatId = this.curryTempChatId(this.redis)
+	tempChatId = this.curryRedisGetSet(this.redis, '-temp_chat_id', 'getString')
 
 	// private redisQuery=()=>{
 
 	// }
 }
+
+// <
+// 			QT extends GETSET,
+// 			MP extends typeof monadPredicat,
+// 			ReturnType = QT extends 'get'
+// 				? MP extends undefined
+// 					? Promise<string>
+// 					: Promise<Either<boolean, boolean>>
+// 				: Promise<string>,
+// 		>
