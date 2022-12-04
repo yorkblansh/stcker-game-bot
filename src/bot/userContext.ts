@@ -42,7 +42,6 @@ export class UserContext {
 
 	private dbMethodsFactory = <
 		WIN extends 'getMonad' | 'getString',
-		MP extends typeof monadPredicat,
 		GetReturnType = WIN extends 'getMonad' ? Either<boolean, boolean> : string,
 	>(
 		postfix: keyof typeof Postfix,
