@@ -22,7 +22,7 @@ dotenv.config()
 
 type GETSET = 'get' | 'set'
 
-type RedisClient = ReturnType<typeof createClient>
+export type RedisClient = ReturnType<typeof createClient>
 
 interface MapHandlerProps {
 	command: RegExp
@@ -30,7 +30,7 @@ interface MapHandlerProps {
 	screenStateMonad: () => Promise<Either<boolean, boolean>>
 }
 
-interface HandledResponse {
+export interface HandledResponse {
 	chatId: number
 	input: RegExpExecArray['input']
 	username: string
@@ -375,11 +375,11 @@ Village - скромный городишко, в котором осталос�
 	// 	messageId,
 	// )
 
-	private setTempChatId = () =>
-		this.redis.set(
-			`${this.handledResponse.username}-temp_chat_id`,
-			this.handledResponse.chatId,
-		)
+	// private setTempChatId = () =>
+	// 	this.redis.set(
+	// 		`${this.handledResponse.username}-temp_chat_id`,
+	// 		this.handledResponse.chatId,
+	// 	)
 
 	private setNickname = (nickname: string) =>
 		this.redis.set(`${this.handledResponse.username}-nickname`, nickname)
