@@ -277,15 +277,15 @@ Village - скромный городишко, в котором осталос�
 		})
 	}
 
-	private checkRedisData = async () => {
-		const nicknameStatus = await this.getWaitingNicknameStatus()
-		const avatarStatus = await this.getWaitingAvatarStatus()
+	// private checkRedisData = async () => {
+	// 	const nicknameStatus = await this.getWaitingNicknameStatus()
+	// 	const avatarStatus = await this.getWaitingAvatarStatus()
 
-		console.log({
-			nicknameStatus,
-			avatarStatus,
-		})
-	}
+	// 	console.log({
+	// 		nicknameStatus,
+	// 		avatarStatus,
+	// 	})
+	// }
 
 	// private carry = (hr: HandledResponse) => {
 	// 	function feedTo(cb: (hr: HandledResponse) => any) {
@@ -295,79 +295,79 @@ Village - скромный городишко, в котором осталос�
 	// 	return { feedTo }
 	// }
 
-	private getTempIntervalTimerList = () => this.intervalTimerList
+	// private getTempIntervalTimerList = () => this.intervalTimerList
 
-	private setTempIntervalTimerList = (intervalTimerList: NodeJS.Timer[]) =>
-		intervalTimerList.map((intervalTimer) =>
-			this.intervalTimerList.push(intervalTimer),
-		)
+	// private setTempIntervalTimerList = (intervalTimerList: NodeJS.Timer[]) =>
+	// 	intervalTimerList.map((intervalTimer) =>
+	// 		this.intervalTimerList.push(intervalTimer),
+	// 	)
 
-	private sendRecycledMessage = async (
-		msInterval: number,
-		messageList: string[],
-		firstMessage?: string,
-	) => {
-		const tgBotMessage = await pipe(
-			firstMessage ? firstMessage : messageList[0],
-			this.sendMessage,
-		)
-		let cc = 0
-		const intervalTimer = setInterval(async () => {
-			const message = messageList[cc]
-			console.log({ cc, message })
-			pipe(tgBotMessage.message_id, this.editMessage(message))
-			if (cc + 1 < messageList.length) cc++
-			else cc = 0
-		}, msInterval)
-		setTimeout(() => clearInterval(intervalTimer), 100000)
+	// private sendRecycledMessage = async (
+	// 	msInterval: number,
+	// 	messageList: string[],
+	// 	firstMessage?: string,
+	// ) => {
+	// 	const tgBotMessage = await pipe(
+	// 		firstMessage ? firstMessage : messageList[0],
+	// 		this.sendMessage,
+	// 	)
+	// 	let cc = 0
+	// 	const intervalTimer = setInterval(async () => {
+	// 		const message = messageList[cc]
+	// 		console.log({ cc, message })
+	// 		pipe(tgBotMessage.message_id, this.editMessage(message))
+	// 		if (cc + 1 < messageList.length) cc++
+	// 		else cc = 0
+	// 	}, msInterval)
+	// 	setTimeout(() => clearInterval(intervalTimer), 100000)
 
-		return { ...tgBotMessage, intervalTimer }
-	}
+	// 	return { ...tgBotMessage, intervalTimer }
+	// }
 
-	private editMessage = (text: string) => (messageId: string | number) =>
-		this.bot.editMessageText(text, {
-			parse_mode: 'HTML',
-			message_id: parseInt(messageId.toString()),
-			chat_id: this.handledResponse.chatId,
-		})
+	// private editMessage = (text: string) => (messageId: string | number) =>
+	// 	this.bot.editMessageText(text, {
+	// 		parse_mode: 'HTML',
+	// 		message_id: parseInt(messageId.toString()),
+	// 		chat_id: this.handledResponse.chatId,
+	// 	})
 
 	// (this.handledResponse.chatId, text, {
 	// 	parse_mode: 'HTML',
 	// })
 
-	private sendMessage = (
-		text: string,
-		options?: TelegramBot.SendMessageOptions,
-	) =>
-		this.bot.sendMessage(this.handledResponse.chatId, text, {
-			parse_mode: 'HTML',
-			...options,
-		})
+	// private sendMessage = (
+	// 	text: string,
+	// 	options?: TelegramBot.SendMessageOptions,
+	// ) =>
+	// 	this.bot.sendMessage(this.handledResponse.chatId, text, {
+	// 		parse_mode: 'HTML',
+	// 		...options,
+	// 	})
 
-	private sendPhoto = (photo: string | internal.Stream | Buffer) =>
-		this.bot.sendPhoto(this.handledResponse.chatId, photo)
+	// private sendPhoto = (photo: string | internal.Stream | Buffer) =>
+	// 	this.bot.sendPhoto(this.handledResponse.chatId, photo)
 
-	private deleteMessage = (id: string | number) => {
-		console.log('message deleted')
-		this.bot.deleteMessage(this.handledResponse.chatId, id.toString())
-	}
+	// private deleteMessage = (id: string | number) => {
+	// 	console.log('message deleted')
+	// 	this.bot.deleteMessage(this.handledResponse.chatId, id.toString())
+	// }
 
-	private sendSticker = (sticker: string) =>
-		this.bot.sendSticker(this.handledResponse.chatId, sticker)
+	// private sendSticker = (sticker: string) =>
+	// 	this.bot.sendSticker(this.handledResponse.chatId, sticker)
 
-	private setTempMessageIdList = (messageIdList: (string | number)[]) => {
-		messageIdList.map((messageId) =>
-			this.tempMessageIdList.push(messageId.toString()),
-		)
+	// private setTempMessageIdList = (messageIdList: (string | number)[]) => {
+	// 	messageIdList.map((messageId) =>
+	// 		this.tempMessageIdList.push(messageId.toString()),
+	// 	)
 
-		return this.setTempMessageIdList
-	}
+	// 	return this.setTempMessageIdList
+	// }
 
-	private pruneMessageIdList = () => {
-		this.tempMessageIdList = []
-	}
+	// private pruneMessageIdList = () => {
+	// 	this.tempMessageIdList = []
+	// }
 
-	private getTempMessageIdList = () => this.tempMessageIdList
+	// private getTempMessageIdList = () => this.tempMessageIdList
 
 	// ({ username }: HandledResponse) =>
 	// this.redis.set(
@@ -381,75 +381,75 @@ Village - скромный городишко, в котором осталос�
 	// 		this.handledResponse.chatId,
 	// 	)
 
-	private setNickname = (nickname: string) =>
-		this.redis.set(`${this.handledResponse.username}-nickname`, nickname)
+	// private setNickname = (nickname: string) =>
+	// 	this.redis.set(`${this.handledResponse.username}-nickname`, nickname)
 
-	private getNickname = () =>
-		this.redis.get(`${this.handledResponse.username}-nickname`)
+	// private getNickname = () =>
+	// 	this.redis.get(`${this.handledResponse.username}-nickname`)
 
-	private getWaitingStartHelloStatus = async (): Promise<
-		Either<boolean, boolean>
-	> => {
-		const str = await this.redis.get(
-			`${this.handledResponse.username}-waiting_start_hello`,
-		)
-		return str && str === '22' ? right(true) : left(false)
-	}
+	// private getWaitingStartHelloStatus = async (): Promise<
+	// 	Either<boolean, boolean>
+	// > => {
+	// 	const str = await this.redis.get(
+	// 		`${this.handledResponse.username}-waiting_start_hello`,
+	// 	)
+	// 	return str && str === '22' ? right(true) : left(false)
+	// }
 
-	private setWaitingStartHelloStatus = (status: boolean) =>
-		this.redis.set(
-			`${this.handledResponse.username}-waiting_start_hello`,
-			this.rus(status),
-		)
+	// private setWaitingStartHelloStatus = (status: boolean) =>
+	// 	this.redis.set(
+	// 		`${this.handledResponse.username}-waiting_start_hello`,
+	// 		this.rus(status),
+	// 	)
 
-	private getWaitingNicknameStatusRepeated = async (): Promise<
-		Either<boolean, boolean>
-	> => {
-		const str = await this.redis.get(
-			`${this.handledResponse.username}-waiting_nickname_repeated`,
-		)
-		return str && str === '22' ? right(true) : left(false)
-	}
+	// private getWaitingNicknameStatusRepeated = async (): Promise<
+	// 	Either<boolean, boolean>
+	// > => {
+	// 	const str = await this.redis.get(
+	// 		`${this.handledResponse.username}-waiting_nickname_repeated`,
+	// 	)
+	// 	return str && str === '22' ? right(true) : left(false)
+	// }
 
-	private setWaitingNicknameStatusRepeated = (status: boolean) =>
-		this.redis.set(
-			`${this.handledResponse.username}-waiting_nickname_repeated`,
-			this.rus(status),
-		)
+	// private setWaitingNicknameStatusRepeated = (status: boolean) =>
+	// 	this.redis.set(
+	// 		`${this.handledResponse.username}-waiting_nickname_repeated`,
+	// 		this.rus(status),
+	// 	)
 
-	private setWaitingNicknameStatus = (status: boolean) =>
-		this.redis.set(
-			`${this.handledResponse.username}-waiting_nickname`,
-			this.rus(status),
-		)
+	// private setWaitingNicknameStatus = (status: boolean) =>
+	// 	this.redis.set(
+	// 		`${this.handledResponse.username}-waiting_nickname`,
+	// 		this.rus(status),
+	// 	)
 
-	private getWaitingNicknameStatus = async (): Promise<
-		Either<boolean, boolean>
-	> => {
-		const str = await this.redis.get(
-			`${this.handledResponse.username}-waiting_nickname`,
-		)
-		return str && str === '22' ? right(true) : left(false)
-	}
+	// private getWaitingNicknameStatus = async (): Promise<
+	// 	Either<boolean, boolean>
+	// > => {
+	// 	const str = await this.redis.get(
+	// 		`${this.handledResponse.username}-waiting_nickname`,
+	// 	)
+	// 	return str && str === '22' ? right(true) : left(false)
+	// }
 
-	private setWaitingAvatarStatus = (status: boolean) => {
-		return this.redis.set(
-			`${this.handledResponse.username}-waiting_avatar`,
-			this.rus(status),
-		)
-	}
+	// private setWaitingAvatarStatus = (status: boolean) => {
+	// 	return this.redis.set(
+	// 		`${this.handledResponse.username}-waiting_avatar`,
+	// 		this.rus(status),
+	// 	)
+	// }
 
-	private getWaitingAvatarStatus = async () => {
-		const str = await this.redis.get(
-			`${this.handledResponse.username}-waiting_avatar`,
-		)
-		return str && str === '22'
-	}
+	// private getWaitingAvatarStatus = async () => {
+	// 	const str = await this.redis.get(
+	// 		`${this.handledResponse.username}-waiting_avatar`,
+	// 	)
+	// 	return str && str === '22'
+	// }
 
-	/**
-	 * Redis Util Status
-	 */
-	private rus(status: boolean) {
-		return status ? 22 : 11
-	}
+	// /**
+	//  * Redis Util Status
+	//  */
+	// private rus(status: boolean) {
+	// 	return status ? 22 : 11
+	// }
 }
