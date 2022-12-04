@@ -21,17 +21,21 @@ function monadPredicat(str: string) {
 	return str && str === '22'
 }
 
-function rus(status: boolean) {
-	return status ? 22 : 11
+function rus(
+	value: boolean | string | number | (number | string | NodeJS.Timer)[],
+) {
+	if (typeof value == 'boolean') return value ? 22 : 11
+	if (typeof value == 'string') return value
+	if (typeof value == 'number') return value.toString()
+	if (Array.isArray(value))
+		return JSON.stringify(value.map((v) => v.toString()))
 }
 
 export class UserContext {
-	private username: string
-
 	constructor(
 		private readonly bot: TelegramBot,
 		private readonly redis: RedisClient,
-		private hr: HandledResponse,
+		public hr: HandledResponse,
 	) {
 		const y = this.nickname('get')
 	}
@@ -43,11 +47,14 @@ export class UserContext {
 	>(
 		postfix: keyof typeof Postfix,
 		whatIsNeed: WIN,
-		monadPredicatCB?: MP,
+		monadPredicatCB?: (arg: any) => any,
 	) => {
 		const redis = this.redis
-		const redisArg = this.username + postfix
-		function fn(queryType: 'set', value: string): Promise<string>
+		const redisArg = this.hr.username + postfix
+		function fn(
+			queryType: 'set',
+			value: boolean | string | number | (number | string | NodeJS.Timer)[],
+		): Promise<string>
 		function fn(queryType: 'get'): Promise<GetReturnType>
 		function fn<
 			QT extends GETSET,
@@ -57,14 +64,14 @@ export class UserContext {
 				get: async () => {
 					const str = await redis.get(redisArg)
 					return (
-						monadPredicatCB
+						whatIsNeed === 'getMonad'
 							? monadPredicatCB(str)
 								? right(true)
 								: left(false)
 							: str
 					) as GetReturnType
 				},
-				set: async () => await redis.set(redisArg, this.rus(value)),
+				set: async () => await redis.set(redisArg, rus(value)),
 			}
 			return method[queryType]() as RT
 		}
@@ -79,13 +86,26 @@ export class UserContext {
 
 	tempChatId = this.dbMethodsFactory('-temp_chat_id', 'getString')
 	nickname = this.dbMethodsFactory('-nickname', 'getString')
-	startHelloStatus = this.dbMethodsFactory('-waiting_start_hello', 'getMonad')
+	startHelloStatus = this.dbMethodsFactory(
+		'-waiting_start_hello',
+		'getMonad',
+		monadPredicat,
+	)
 	nicknameStatusRepeated = this.dbMethodsFactory(
 		'-waiting_nickname_repeated',
 		'getMonad',
+		monadPredicat,
 	)
-	nicknameStatus = this.dbMethodsFactory('-waiting_nickname', 'getMonad')
-	avatarStatus = this.dbMethodsFactory('-waiting_avatar', 'getMonad')
+	nicknameStatus = this.dbMethodsFactory(
+		'-waiting_nickname',
+		'getMonad',
+		monadPredicat,
+	)
+	avatarStatus = this.dbMethodsFactory(
+		'-waiting_avatar',
+		'getMonad',
+		monadPredicat,
+	)
 	tempMessageIdList = this.dbMethodsFactory(
 		'-temp-message-id-list',
 		'getString',
@@ -95,12 +115,17 @@ export class UserContext {
 		'getString',
 	)
 
-	editMessage = (text: string) => async (messageId: string | number) =>
-		this.bot.editMessageText(text, {
-			parse_mode: 'HTML',
-			message_id: parseInt(messageId.toString()),
-			chat_id: await this.tempChatId('get'),
-		})
+	editMessage = (text: string) => async (messageId: string | number) => {
+		try {
+			this.bot.editMessageText(text, {
+				parse_mode: 'HTML',
+				message_id: parseInt(messageId.toString()),
+				chat_id: await this.tempChatId('get'),
+			})
+		} catch (error) {
+			console.log(error)
+		}
+	}
 
 	sendMessage = async (
 		text: string,
@@ -135,7 +160,12 @@ export class UserContext {
 		const intervalTimer = setInterval(async () => {
 			const message = messageList[cc]
 			console.log({ cc, message })
-			pipe(tgBotMessage.message_id, this.editMessage(message))
+			try {
+				this.editMessage(message)(tgBotMessage.message_id)
+			} catch (error) {
+				console.log(error)
+			}
+
 			if (cc + 1 < messageList.length) cc++
 			else cc = 0
 		}, msInterval)
