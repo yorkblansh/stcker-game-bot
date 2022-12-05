@@ -10,6 +10,8 @@ export enum LocationSwitch {
 	right = 'location_switch.right',
 	left = 'location_switch.left',
 	middle = 'location_switch.middle',
+	arena = 'location_switch.arena',
+	shop = 'location_switch.shop',
 }
 
 interface Props {
@@ -23,6 +25,19 @@ export const locationKBD = ({ middleButton }: Props) => {
 		 * Forcing generic type here due to InlineKeyboardButton generic.
 		 * See Row's file for a better Typescript explanation
 		 */
+
+		new Row<InlineKeyboardButton>(
+			new InlineKeyboardButton(
+				'АРЕНА 🏟',
+				'callback_data',
+				LocationSwitch.arena,
+			),
+			new InlineKeyboardButton(
+				'Магазин 🏪',
+				'callback_data',
+				LocationSwitch.shop,
+			),
+		),
 		new Row<InlineKeyboardButton>(
 			new InlineKeyboardButton('⏪', 'callback_data', LocationSwitch.left),
 			new InlineKeyboardButton(

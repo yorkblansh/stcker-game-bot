@@ -34,13 +34,24 @@ export interface HandledResponse {
 @Injectable()
 export class BotService implements OnModuleInit {
 	private bot: TelegramBot
+	private fight: {
+		waitingRoom: string[]
+		busyPlayers: string[]
+		notFightingPlayes: string[]
+	}
 
 	constructor(
 		@Inject('REDIS_CLIENT') private readonly redis: RedisClient,
 		private readonly httpService: HttpService,
 		private readonly fetcherService: FetcherService,
 		private readonly fsService: FsService,
-	) {}
+	) {
+		this.fight = {
+			waitingRoom: [],
+			busyPlayers: [],
+			notFightingPlayes: [],
+		}
+	}
 
 	onModuleInit() {
 		this.initBot(process.env.BOT_KEY)
@@ -69,10 +80,31 @@ export class BotService implements OnModuleInit {
 		const queryDataHandlersMap = {
 			[NameConfirmation.generic]: this.nameConfirmationHandler(query),
 			[LocationSwitch.generic]: this.postoyalets(query),
+			[WaitArena.generic]: this.arenaConfirmation(query),
 		}
 		const index = query.data.split('.')[0]
 		console.log({ index })
 		return queryDataHandlersMap[index][query.data](uc)
+	}
+
+	private arenaConfirmation = (query: TelegramBot.CallbackQuery) => ({
+		[WaitArena.back]: async (uc: UserContext) => {
+			const tempMessageIdList = JSON.parse(
+				await uc.db.tempMessageIdList('get'),
+			) as string[]
+			tempMessageIdList.map(uc.deleteMessage)
+			this.menuSlidesHandler(uc)
+		},
+		[WaitArena.fight]: async (uc: UserContext) => {
+			const tempMessageIdList = JSON.parse(
+				await uc.db.tempMessageIdList('get'),
+			) as string[]
+			tempMessageIdList.map(uc.deleteMessage)
+		},
+	})
+
+	private fightMode = (uc: UserContext) => {
+		
 	}
 
 	private villageHintMessage = async (uc: UserContext) => {
@@ -90,7 +122,8 @@ Village - скромный городишко, в котором осталос�
 	}
 
 	private menuSlidesHandler = async (uc: UserContext) => {
-		await this.villageHintMessage(uc)
+		const isHintVillageMessage = (await uc.db.villageHintStatus('get')).value
+		if (isHintVillageMessage) await this.villageHintMessage(uc)
 
 		const locationStuffMID = await this.pipeTelegramMessage([
 			() =>
@@ -98,10 +131,11 @@ Village - скромный городишко, в котором осталос�
 					`🗺️ Локация: Village🌄
 🏟 Арена: ViArana - 🆓
 🏪 Магазин: Farm - 🆓`,
-					locationKBD({ middleButton: `🌚` }).options,
+					locationKBD({ middleButton: `Location info` }).options,
 				),
 		])
 
+		uc.db.villageHintStatus('set', false)
 		uc.db.tempMessageIdList('set', [...locationStuffMID])
 	}
 
@@ -233,6 +267,7 @@ Village - скромный городишко, в котором осталос�
 
 	private hellowMessageHandler = async (uc: UserContext) =>
 		(await uc.db.startHelloStatus('get')).mapRight(async () => {
+			uc.db.villageHintStatus('set', true)
 			uc.db.nicknameStatusRepeated('set', false)
 			const { messageId: userMessageId } = uc.hr
 			uc.deleteMessage(userMessageId)
@@ -241,17 +276,17 @@ Village - скромный городишко, в котором осталос�
 				() =>
 					uc.sendMessage(
 						`<b>Добро пожаловать в Sticker Fights!</b>  
-	<i>Мир полный приключений.</i>   
-	Бросай вызов другим игрокам ⚔  
-	Заводи новые знакомства, 🤝  
-	Испытай свою удачу 🎲
-	<b><u>НЕ УПУСТИ СВОЙ ШАНС</u></b>`,
+<i>Мир полный приключений.</i>   
+Бросай вызов другим игрокам ⚔  
+Заводи новые знакомства, 🤝  
+Испытай свою удачу 🎲
+<b><u>НЕ УПУСТИ СВОЙ ШАНС</u></b>`,
 					),
 				() => uc.sendSticker(sticker.bunny_hellow),
 				() =>
 					uc.sendMessage(
 						`<b><i><u>Bunny Girl</u></i></b>
-	Оу, вижу новое лицо в нашем скромном местечке, как тебя зовут?`,
+Оу, вижу новое лицо в нашем скромном местечке, как тебя зовут?`,
 					),
 			])
 
@@ -272,7 +307,7 @@ Village - скромный городишко, в котором осталос�
 		})
 
 	private postoyalets = (query: TelegramBot.CallbackQuery) => ({
-		[LocationSwitch.middle]: async (uc: UserContext) => {
+		[LocationSwitch.arena]: async (uc: UserContext) => {
 			const tempMessageIdList = JSON.parse(
 				await uc.db.tempMessageIdList('get'),
 			) as string[]
@@ -283,18 +318,20 @@ Village - скромный городишко, в котором осталос�
 				() =>
 					uc.sendMessage(
 						`<b><i><u>Постоялец</u></i></b>  
-	Хэ-Гэй, решил испытать свою живность?
-	Могу тебя понять, развлечений тут не много...
-	Это бесплатно, думай скорее.`,
+Хэ-Гэй, решил испытать свою живность?
+Могу тебя понять, развлечений тут не много...
+Это бесплатно, думай скорее.`,
 					),
 				() =>
 					uc.sendMessage(
 						`<b><i><u>ℹ️info</u></i></b>
-	Арена Бар
-	Ставка - 0₽`,
+Арена Бар
+Ставка - 0₽`,
 						waitArenaKBD().options,
 					),
 			])
+
+			uc.db.tempMessageIdList('set', [...tgResponses])
 		},
 	})
 

@@ -12,6 +12,7 @@ enum Postfix {
 	'-waiting_avatar' = '-waiting_avatar',
 	'-temp-message-id-list' = '-temp-message-id-list',
 	'-interval-timer-list' = '-interval-timer-list',
+	'-village-hint-method-status' = '-village-hint-method-status',
 }
 
 function monadPredicat(str: string) {
@@ -101,5 +102,10 @@ export class DBFactory {
 	tempIntervalTimerList = this.dbMethodsFactory(
 		'-interval-timer-list',
 		'getString',
+	)
+	villageHintStatus = this.dbMethodsFactory(
+		'-village-hint-method-status',
+		'getMonad',
+		monadPredicat,
 	)
 }

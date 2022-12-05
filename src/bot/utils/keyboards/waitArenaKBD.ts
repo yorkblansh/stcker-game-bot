@@ -7,8 +7,8 @@ import {
 
 export enum WaitArena {
 	generic = 'wait_arena',
-	back = 'wait_arena.right',
-	fight = 'wait_arena.left',
+	back = 'wait_arena.back',
+	fight = 'wait_arena.fight',
 }
 
 export const waitArenaKBD = () => {
