@@ -9,4 +9,6 @@ export const sticker = {
 		'CAACAgIAAxkBAAEaiZpjiJnVUQwrhBo0ciIBYJE3m4aHLAACUAQAAsxUSQlxXF2Vgh-lZSsE',
 	bunny_legs:
 		'CAACAgIAAxkBAAEakSFjieMtJiGPSd7Dn8LmPvj3B5ABGQACRAQAAsxUSQm_fwr0h1sdvisE',
+	postoyalets:
+		'CAACAgIAAxkBAAEapZ5jjX69oZwh-PfhV1yFqyS1wePpfQACLg0AAk77QEk1lx4P0Q3fOysE',
 }
