@@ -1,0 +1,31 @@
+import TelegramBot from 'node-telegram-bot-api'
+import {
+	InlineKeyboard,
+	Row,
+	InlineKeyboardButton,
+} from 'node-telegram-keyboard-wrapper'
+
+export enum WaitArena {
+	generic = 'wait_arena',
+	back = 'wait_arena.right',
+	fight = 'wait_arena.left',
+}
+
+export const waitArenaKBD = () => {
+	const keyboard = new InlineKeyboard()
+	keyboard.push(
+		/**
+		 * Forcing generic type here due to InlineKeyboardButton generic.
+		 * See Row's file for a better Typescript explanation
+		 */
+		new Row<InlineKeyboardButton>(
+			new InlineKeyboardButton('◀️', 'callback_data', WaitArena.back),
+			new InlineKeyboardButton('⚔️', 'callback_data', WaitArena.fight),
+		),
+	)
+
+	const options: TelegramBot.SendMessageOptions = {
+		reply_markup: keyboard.getMarkup(),
+	}
+	return { options, keyboard }
+}
