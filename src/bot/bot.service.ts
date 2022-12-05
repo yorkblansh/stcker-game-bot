@@ -11,8 +11,9 @@ import {
 	isItYourNameKBD,
 	NameConfirmation,
 } from './utils/keyboards/isItYourNameKBD'
-import { locationKBD } from './utils/keyboards/locationKBD'
+import { locationKBD, LocationSwitch } from './utils/keyboards/locationKBD'
 import { UserContext } from './utils/userContext'
+import { WaitArena, waitArenaKBD } from './utils/keyboards/waitArenaKBD'
 
 dotenv.config()
 
@@ -67,8 +68,10 @@ export class BotService implements OnModuleInit {
 		const uc = new UserContext(this.bot, this.redis, hr)
 		const queryDataHandlersMap = {
 			[NameConfirmation.generic]: this.nameConfirmationHandler(query),
+			[LocationSwitch.generic]: this.postoyalets(query),
 		}
 		const index = query.data.split('.')[0]
+		console.log({ index })
 		return queryDataHandlersMap[index][query.data](uc)
 	}
 
@@ -98,6 +101,8 @@ Village - скромный городишко, в котором осталос�
 					locationKBD({ middleButton: `🌚` }).options,
 				),
 		])
+
+		uc.db.tempMessageIdList('set', [...locationStuffMID])
 	}
 
 	private nameConfirmationHandler = (query: TelegramBot.CallbackQuery) => ({
@@ -265,6 +270,33 @@ Village - скромный городишко, в котором осталос�
 			])
 			uc.db.tempIntervalTimerList('set', [intervalTimer])
 		})
+
+	private postoyalets = (query: TelegramBot.CallbackQuery) => ({
+		[LocationSwitch.middle]: async (uc: UserContext) => {
+			const tempMessageIdList = JSON.parse(
+				await uc.db.tempMessageIdList('get'),
+			) as string[]
+			tempMessageIdList.map(uc.deleteMessage)
+
+			const tgResponses = await this.pipeTelegramMessage([
+				() => uc.sendSticker(sticker.postoyalets),
+				() =>
+					uc.sendMessage(
+						`<b><i><u>Постоялец</u></i></b>  
+	Хэ-Гэй, решил испытать свою живность?
+	Могу тебя понять, развлечений тут не много...
+	Это бесплатно, думай скорее.`,
+					),
+				() =>
+					uc.sendMessage(
+						`<b><i><u>ℹ️info</u></i></b>
+	Арена Бар
+	Ставка - 0₽`,
+						waitArenaKBD().options,
+					),
+			])
+		},
+	})
 
 	private pipeTelegramMessage = async (
 		tgResponseList: (() => Promise<TelegramBot.Message>)[],
