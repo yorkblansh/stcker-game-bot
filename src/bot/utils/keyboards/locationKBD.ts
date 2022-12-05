@@ -9,7 +9,7 @@ export enum LocationSwitch {
 	generic = 'location_switch',
 	right = 'location_switch.right',
 	left = 'location_switch.left',
-	middle = 'location_switch.info',
+	middle = 'location_switch.middle',
 }
 
 interface Props {
