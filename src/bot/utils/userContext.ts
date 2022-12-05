@@ -97,7 +97,7 @@ export class UserContext {
 			if (cc + 1 < messageList.length) cc++
 			else cc = 0
 		}, msInterval)
-		setTimeout(() => clearInterval(intervalTimer), 100000)
+		setTimeout(() => clearInterval(intervalTimer), 20000)
 
 		return { ...tgBotMessage, intervalTimer }
 	}
