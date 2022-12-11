@@ -1,0 +1,12 @@
+{
+	"name": "bot",
+	"version": "0.1.0",
+	"repository": "",
+	"author": "Oleg Chepelev <yorkblansh@gmail.com>",
+	"workspaces": {
+		"packages": [
+			"workspaces/*"
+		]
+	},
+	"packageManager": "yarn@3.3.0"
+}

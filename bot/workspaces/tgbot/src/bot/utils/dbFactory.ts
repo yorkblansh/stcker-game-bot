@@ -13,6 +13,7 @@ enum Postfix {
 	'-temp-message-id-list' = '-temp-message-id-list',
 	'-interval-timer-list' = '-interval-timer-list',
 	'-village-hint-method-status' = '-village-hint-method-status',
+	'-assembled-event' = '-assembled-event',
 }
 
 function monadPredicat(str: string) {
@@ -103,6 +104,7 @@ export class DBFactory {
 		'-interval-timer-list',
 		'getString',
 	)
+	assembledEvent = this.dbMethodsFactory('-assembled-event', 'getString')
 	villageHintStatus = this.dbMethodsFactory(
 		'-village-hint-method-status',
 		'getMonad',

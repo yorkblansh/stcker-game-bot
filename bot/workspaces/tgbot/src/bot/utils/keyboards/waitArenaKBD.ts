@@ -9,6 +9,7 @@ export enum WaitArena {
 	generic = 'wait_arena',
 	back = 'wait_arena.back',
 	fight = 'wait_arena.fight',
+	test = 'wait_arena.test',
 }
 
 export const waitArenaKBD = () => {
@@ -21,6 +22,8 @@ export const waitArenaKBD = () => {
 		new Row<InlineKeyboardButton>(
 			new InlineKeyboardButton('◀️', 'callback_data', WaitArena.back),
 			new InlineKeyboardButton('⚔️', 'callback_data', WaitArena.fight),
+			new InlineKeyboardButton('🟦', 'callback_data', WaitArena.test),
+
 		),
 	)
 

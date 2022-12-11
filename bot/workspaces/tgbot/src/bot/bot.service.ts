@@ -14,6 +14,7 @@ import {
 import { locationKBD, LocationSwitch } from './utils/keyboards/locationKBD'
 import { UserContext } from './utils/userContext'
 import { WaitArena, waitArenaKBD } from './utils/keyboards/waitArenaKBD'
+import { io, Socket } from 'socket.io-client'
 
 dotenv.config()
 
@@ -39,6 +40,7 @@ export class BotService implements OnModuleInit {
 		busyPlayers: string[]
 		notFightingPlayes: string[]
 	}
+	private socket: Socket
 
 	constructor(
 		@Inject('REDIS_CLIENT') private readonly redis: RedisClient,
@@ -56,6 +58,17 @@ export class BotService implements OnModuleInit {
 	onModuleInit() {
 		this.initBot(process.env.BOT_KEY)
 		this.handleCommands()
+
+		this.socket = io('http://localhost:4040/')
+
+		// client-side
+		this.socket.on('connect', () => {
+			console.log(this.socket.id) // x8WIv7-mJelg7on_ALbx
+		})
+
+		this.socket.on('disconnect', () => {
+			console.log(this.socket.id) // undefined
+		})
 	}
 
 	initBot(token: string) {
@@ -100,12 +113,33 @@ export class BotService implements OnModuleInit {
 				await uc.db.tempMessageIdList('get'),
 			) as string[]
 			tempMessageIdList.map(uc.deleteMessage)
+
+			const mid = await this.pipeTelegramMessage([
+				() => uc.sendMessage(`waiting for concurent`),
+			])
+
+			console.log('here must be test')
+
+			this.socket.emit('add_user', uc.hr.username)
+			console.log({ username: uc.hr.username })
+			// if (uc.hr.username === 'yorkblansh1')
+			this.socket.on(`assembled_event_${uc.hr.username}`, (data) => {
+				uc.db.assembledEvent('set', data)
+				console.log({ [`for_${uc.hr.username}`]: data })
+			})
+		},
+		[WaitArena.test]: async (uc: UserContext) => {
+			const assembledEvent = await uc.db.assembledEvent('get')
+			// console.log({ assembledEvent })
+			this.socket.on('fight_status', (fightStatus: boolean) => {})
+			this.socket.emit(assembledEvent, `fight_${uc.hr.username}`)
+			this.socket.on(assembledEvent, (data) => {
+				console.log({ data })
+			})
 		},
 	})
 
-	private fightMode = (uc: UserContext) => {
-		
-	}
+	private fightMode = (uc: UserContext) => {}
 
 	private villageHintMessage = async (uc: UserContext) => {
 		const locationInfoMID = await this.pipeTelegramMessage([
