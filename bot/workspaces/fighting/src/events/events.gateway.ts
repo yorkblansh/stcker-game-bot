@@ -39,20 +39,9 @@ export class EventsGateway implements OnModuleInit {
 	server: Server
 
 	private damageMap: Map<string, number>
-
 	private waitingUserList: string[] = []
-	// private io: Server
 
-	constructor(
-		// private readonly parser: ParserService,
-		// private readonly jwtService: JwtService,
-		@Inject('REDIS_CLIENT') private readonly redis: RedisClient,
-	) {
-		// this.emitParsed()
-		// this.server.on('test', () => {
-		// 	console.log('handle test')
-		// })
-	}
+	constructor(@Inject('REDIS_CLIENT') private readonly redis: RedisClient) {}
 
 	onModuleInit() {
 		this.damageMap = new Map()
@@ -63,49 +52,7 @@ export class EventsGateway implements OnModuleInit {
 		this.server.on('connection', (socket) => {
 			console.log('new connect')
 		})
-		// const io = new Server(3033, { allowEIO3: true, cors: { origin: '*' } })
-
-		// // this.io.attachApp(app)
-
-		// io.on('connection', (socket) => {
-		// 	socket.on('test', (data) => {
-		// 		console.log({ data })
-		// 	})
-
-		// 	console.log('new connect')
-		// })
-
-		// io.listen(3034)
-		// this.initBot(process.env.BOT_KEY)
-		// this.handleCommands()
 	}
-
-	// async emitParsed() {
-	// 	const either = await this.parser.getData()
-
-	// 	const handleParserError = (parserError: ParserError) => {
-	// 		console.log(parserError.error)
-	// 	}
-
-	// 	const handleSendingToClient = async (parsedData: ParsedData) => {
-	// 		const parsing_state = (await this.redis.get('parsing_state')) as '0' | '1'
-
-	// 		if (parsing_state === '1') {
-	// 			this.server.to('parsing_room').emit('parse', {
-	// 				parsedData,
-	// 				...{ timstamp: new Date().getMilliseconds() },
-	// 			})
-	// 		}
-
-	// 		this.server.to('parsing_room').emit('parse_state', {
-	// 			state: parsing_state,
-	// 		})
-	// 	}
-
-	// 	setInterval(() => {
-	// 		either.mapRight(handleSendingToClient).mapLeft(handleParserError)
-	// 	}, 500)
-	// }
 
 	private assembleUsers2Events = () => {
 		return chunk(this.waitingUserList, 2).map((userPair) => {
@@ -139,15 +86,10 @@ export class EventsGateway implements OnModuleInit {
 				const servCtx = ctx.serverContext(this.server)
 				servCtx.joinRooms2Rooms(username, assembledEvent)
 				servCtx.sendAssembledEvent2User(username, assembledEvent)
-				// this.server.in(`room_${username}`).socketsJoin(assembledEvent)
-				// this.server.of('/').emit(`assembled_event_${username}`, assembledEvent)
 			})
 
 			const { damagerUsername } = await ctx.listenDamageEvent(assembledEvent)
 
-			// socket.on(
-			// 	`${assembledEvent}_damage`,
-			// 	(data: { damagerUsername: string }) => {
 			console.log({ damagerUsername })
 			const randomDamage = this.getRandomDamage(10, 10)
 
@@ -169,18 +111,6 @@ export class EventsGateway implements OnModuleInit {
 					health: prevOpponentHealth - randomDamage,
 				},
 			})
-			// socket.emit(`${assembledEvent}_user_update`, {
-			// 	damager: {
-			// 		username: userName,
-			// 		health: userHealth,
-			// 	},
-			// 	opponent: {
-			// 		username: opponentUserName,
-			// 		health: prevOpponentHealth - randomDamage,
-			// 	},
-			// })
-			// 	},
-			// )
 		}
 
 	@SubscribeMessage('add_user')
