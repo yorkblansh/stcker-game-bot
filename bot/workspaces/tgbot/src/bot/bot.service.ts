@@ -193,7 +193,8 @@ export class BotService implements OnModuleInit {
 		})
 	}
 
-	private makeDamage = (query: TelegramBot.CallbackQuery) => ({
+	private makeDamage = 
+	(query: TelegramBot.CallbackQuery) => ({
 		[FightMode.damage]: async (uc: UserContext) => {
 			const assembledEvent = await uc.db.assembledEvent('get')
 
