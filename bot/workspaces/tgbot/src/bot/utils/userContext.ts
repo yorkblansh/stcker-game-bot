@@ -43,17 +43,20 @@ export class UserContext {
 		this.db = new DBFactory(this.redis, this.hr.username)
 	}
 
-	editMessage = (text: string) => async (messageId: string | number) => {
-		try {
-			this.bot.editMessageText(text, {
-				parse_mode: 'HTML',
-				message_id: parseInt(messageId.toString()),
-				chat_id: await this.db.tempChatId('get'),
-			})
-		} catch (error) {
-			console.log(error)
+	editMessage =
+		(text: string, options?: TelegramBot.EditMessageTextOptions) =>
+		async (messageId: string | number) => {
+			try {
+				this.bot.editMessageText(text, {
+					parse_mode: 'HTML',
+					message_id: parseInt(messageId.toString()),
+					chat_id: await this.db.tempChatId('get'),
+					...options,
+				})
+			} catch (error) {
+				console.log(error)
+			}
 		}
-	}
 
 	sendMessage = async (
 		text: string,
@@ -61,6 +64,7 @@ export class UserContext {
 	) =>
 		this.bot.sendMessage(await this.db.tempChatId('get'), text, {
 			parse_mode: 'HTML',
+
 			...options,
 		})
 

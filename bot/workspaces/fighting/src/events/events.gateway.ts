@@ -37,6 +37,8 @@ export class EventsGateway implements OnModuleInit {
 	@WebSocketServer()
 	server: Server
 
+	private damageMap: Map<string, number>
+
 	private waitingUserList: string[] = []
 	// private io: Server
 
@@ -52,6 +54,7 @@ export class EventsGateway implements OnModuleInit {
 	}
 
 	onModuleInit() {
+		this.damageMap = new Map()
 		this.waitingUserList = []
 
 		console.log('module init')
@@ -118,8 +121,9 @@ export class EventsGateway implements OnModuleInit {
 	@SubscribeMessage('add_user')
 	addUser(@MessageBody() username: string, @ConnectedSocket() client: Socket) {
 		this.waitingUserList.push(username)
-
+		this.damageMap.set(username, 100)
 		client.join(`room_${username}`)
+
 		this.isListMoreThan2()
 			.mapRight(() => {
 				client.emit('fight_status', true)
@@ -129,23 +133,45 @@ export class EventsGateway implements OnModuleInit {
 					({ assembledEvent, user0, user1 }, index) => {
 						console.log({ user0, user1 })
 						;[user0, user1].map((username, index) => {
+							this.damageMap.set(username, 100)
 							console.log({ assembledEvent, username })
 							this.server.in(`room_${username}`).socketsJoin(assembledEvent)
 
 							this.server
 								.of('/')
 								.emit(`assembled_event_${username}`, assembledEvent)
-
-							if (index === 0)
-								client.on(assembledEvent, (data) => {
-									this.server.to(assembledEvent).emit(assembledEvent, 'kkk')
-									console.log({ data })
-									// this.server
-									// 	.to(assembledEvent)
-									// 	.emit(assembledEvent, 'fight_started')
-								})
 						})
-						// console.log({ index, waitingUserList: this.waitingUserList })
+
+						client.on(
+							`${assembledEvent}_damage`,
+							(data: { damagerUsername: string }) => {
+								console.log({ data })
+								const randomDamage = 10
+
+								const opponentUserName =
+									user0 === data.damagerUsername ? user1 : user0 // нужна более сторгая проверка username
+								const userName = user0 === data.damagerUsername ? user0 : user1
+
+								const prevOpponentHealth = this.damageMap.get(opponentUserName)
+								this.damageMap.set(
+									opponentUserName,
+									prevOpponentHealth - randomDamage,
+								)
+
+								const userHealth = this.damageMap.get(userName)
+
+								client.emit(`${assembledEvent}_user_update`, {
+									damager: {
+										username: userName,
+										health: userHealth,
+									},
+									opponent: {
+										username: opponentUserName,
+										health: prevOpponentHealth - randomDamage,
+									},
+								})
+							},
+						)
 					},
 				)
 			})

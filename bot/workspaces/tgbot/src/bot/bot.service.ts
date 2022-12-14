@@ -15,6 +15,8 @@ import { locationKBD, LocationSwitch } from './utils/keyboards/locationKBD'
 import { UserContext } from './utils/userContext'
 import { WaitArena, waitArenaKBD } from './utils/keyboards/waitArenaKBD'
 import { io, Socket } from 'socket.io-client'
+import { pipe } from 'fp-ts/lib/function'
+import { FightMode, fightModeKDB } from './utils/keyboards/fightModeKBD'
 
 dotenv.config()
 
@@ -32,6 +34,16 @@ export interface HandledResponse {
 	messageId?: number
 }
 
+interface FightUserUpdate {
+	damager: {
+		username: string
+		health: number
+	}
+	opponent: {
+		username: string
+		health: number
+	}
+}
 @Injectable()
 export class BotService implements OnModuleInit {
 	private bot: TelegramBot
@@ -94,9 +106,10 @@ export class BotService implements OnModuleInit {
 			[NameConfirmation.generic]: this.nameConfirmationHandler(query),
 			[LocationSwitch.generic]: this.postoyalets(query),
 			[WaitArena.generic]: this.arenaConfirmation(query),
+			[FightMode.generic]: this.makeDamage(query),
 		}
 		const index = query.data.split('.')[0]
-		console.log({ index })
+		console.log({ index, query_data: query.data })
 		return queryDataHandlersMap[index][query.data](uc)
 	}
 
@@ -118,6 +131,22 @@ export class BotService implements OnModuleInit {
 				() => uc.sendMessage(`waiting for concurent`),
 			])
 
+			uc.db.tempMessageIdList('set', [...mid])
+
+			this.socket.on('fight_status', async (fightStatus: boolean) => {
+				pipe(
+					mid[0],
+					fightStatus
+						? uc.editMessage('соперинк найден!')
+						: uc.editMessage('идет поиск соперника...'),
+				)
+
+				if (fightStatus) {
+					mid.map(uc.deleteMessage)
+					this.fightMode(uc)
+				}
+			})
+
 			console.log('here must be test')
 
 			this.socket.emit('add_user', uc.hr.username)
@@ -128,18 +157,51 @@ export class BotService implements OnModuleInit {
 				console.log({ [`for_${uc.hr.username}`]: data })
 			})
 		},
-		[WaitArena.test]: async (uc: UserContext) => {
+	})
+
+	private fightMode = async (uc: UserContext) => {
+		const fightMessage = (
+			userHealth: number,
+			opponentHealth: number,
+		) => `мое здоровье: ${userHealth}
+здоровье противника: ${opponentHealth}`
+
+		const assembledEvent = await uc.db.assembledEvent('get')
+
+		const fightMessages = await this.pipeTelegramMessage([
+			() => uc.sendMessage(fightMessage(100, 100), fightModeKDB().options),
+		])
+
+		const aggregateUserUpdate = (data: FightUserUpdate) => {
+			console.log({ fight_user_update: data })
+			// учиттывать что бы у атакующего и оппонента были разные никнеймы
+			if (data.damager.username === uc.hr.username)
+				return { me: data.damager, opponent: data.opponent }
+			else if (data.opponent.username === uc.hr.username)
+				return { me: data.opponent, opponent: data.damager }
+		}
+
+		this.socket.on(`${assembledEvent}_user_update`, (data: FightUserUpdate) => {
+			const { me, opponent } = aggregateUserUpdate(data)
+			pipe(
+				fightMessages[0],
+				uc.editMessage(
+					fightMessage(me.health, opponent.health),
+					fightModeKDB().editMessageOptions,
+				),
+			)
+		})
+	}
+
+	private makeDamage = (query: TelegramBot.CallbackQuery) => ({
+		[FightMode.damage]: async (uc: UserContext) => {
 			const assembledEvent = await uc.db.assembledEvent('get')
-			// console.log({ assembledEvent })
-			this.socket.on('fight_status', (fightStatus: boolean) => {})
-			this.socket.emit(assembledEvent, `fight_${uc.hr.username}`)
-			this.socket.on(assembledEvent, (data) => {
-				console.log({ data })
+
+			this.socket.emit(`${assembledEvent}_damage`, {
+				damagerUsername: uc.hr.username,
 			})
 		},
 	})
-
-	private fightMode = (uc: UserContext) => {}
 
 	private villageHintMessage = async (uc: UserContext) => {
 		const locationInfoMID = await this.pipeTelegramMessage([
