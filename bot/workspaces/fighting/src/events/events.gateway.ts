@@ -79,6 +79,7 @@ export class EventsGateway implements OnModuleInit {
 			user0: string
 			user1: string
 		}) => {
+			console.log('handle_fighting')
 			console.log({ user0, user1 })
 			;[user0, user1].map((username, index) => {
 				this.damageMap.set(username, 100)

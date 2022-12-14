@@ -30,14 +30,14 @@ export class SocketContext {
 	listenDamageEvent = (
 		assembledEvent: string,
 	): Promise<DamageEventResponse> => {
-		return new Promise((resolve, reject) =>
+		return new Promise((resolve, reject) => {
 			this.socket.on(
 				`${assembledEvent}_damage`,
 				(data: DamageEventResponse) => {
-					resolve(data)
+					return resolve(data)
 				},
-			),
-		)
+			)
+		})
 	}
 }
 
