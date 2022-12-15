@@ -1,18 +1,24 @@
 import { Server, Socket } from 'socket.io'
 
-interface UserUpdateInfo {
-	damager: {
-		username: string
-		health: number
-	}
-	opponent: {
-		username: string
-		health: number
-	}
+export interface UserUpdateInfo {
+	username: string
+	health: number
+}
+
+export interface DamagerOpponent {
+	damager: UserUpdateInfo
+	opponent: UserUpdateInfo
 }
 
 export class SocketContext {
 	constructor(private readonly socket: Socket) {}
+
+	sendUserUpdate = (
+		assembledEvent: string,
+		damagerOpponent: DamagerOpponent,
+	) => {
+		this.socket.emit(`${assembledEvent}_user_update`, damagerOpponent)
+	}
 
 	serverContext = (server: Server) => new ServerContext(server)
 

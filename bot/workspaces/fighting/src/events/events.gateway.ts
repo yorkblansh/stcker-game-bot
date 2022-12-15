@@ -112,7 +112,7 @@ export class EventsGateway implements OnModuleInit {
 
 					const userHealth = this.damageMap.get(userName)
 
-					socket.emit(`${assembledEvent}_user_update`, {
+					ctx.sendUserUpdate(assembledEvent, {
 						damager: {
 							username: userName,
 							health: userHealth,
@@ -122,17 +122,6 @@ export class EventsGateway implements OnModuleInit {
 							health: prevOpponentHealth - randomDamage,
 						},
 					})
-
-					// ctx.sendUserUpdate({
-					// 	damager: {
-					// 		username: userName,
-					// 		health: userHealth,
-					// 	},
-					// 	opponent: {
-					// 		username: opponentUserName,
-					// 		health: prevOpponentHealth - randomDamage,
-					// 	},
-					// })
 				},
 			)
 		}
