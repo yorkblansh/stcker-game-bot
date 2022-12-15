@@ -25,6 +25,14 @@ export class SocketContext {
 	setFightStatus = (status: boolean) => this.socket.emit('fight_status', status)
 
 	joinUserRoom = (username: string) => this.socket.join(`room_${username}`)
+
+	listenEvent = <T>(event: string) => {
+		return new Promise<T>((resolve, reject) => {
+			this.socket.on(event, (data) => {
+				data ? resolve(data) : reject()
+			})
+		})
+	}
 }
 
 class ServerContext {
