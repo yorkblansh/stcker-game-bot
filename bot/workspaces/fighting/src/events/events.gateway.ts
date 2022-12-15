@@ -148,16 +148,14 @@ export class EventsGateway implements OnModuleInit {
 		this.isListMoreThan2()
 			.mapRight(() => {
 				socket.emit('fight_status', true)
-				// ctx.setFightStatus(true)
 				const assembleUser2EventsList = this.assembleUsers2Events()
 				console.log({ length: assembleUser2EventsList.length })
-				assembleUser2EventsList.map((d) => {
-					this.handleFighting(ctx, socket)(d)
+				assembleUser2EventsList.map((data) => {
+					this.handleFighting(ctx, socket)(data)
 				})
 			})
 			.mapLeft(() => {
 				socket.emit('fight_status', false)
-				// ctx.setFightStatus(false)
 				console.log('not enought client')
 			})
 	}
