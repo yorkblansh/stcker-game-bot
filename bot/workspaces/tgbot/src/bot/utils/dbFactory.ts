@@ -74,6 +74,16 @@ export class DBFactory {
 		return fn
 	}
 
+	setUserStatus = (username: string, status: boolean) => {
+		console.log({
+			TURN: {
+				username,
+				status,
+			},
+		})
+		this.redis.set(`${username}-waiting_start_hello`, rus(status))
+	}
+
 	tempChatId = this.dbMethodsFactory('-temp_chat_id', 'getString')
 	nickname = this.dbMethodsFactory('-nickname', 'getString')
 	startHelloStatus = this.dbMethodsFactory(
