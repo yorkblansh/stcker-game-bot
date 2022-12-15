@@ -22,6 +22,10 @@ export type RedisClient = ReturnType<typeof createClient>
 
 const app = App()
 
+interface DamageEventResponse {
+	damagerUsername: string
+}
+
 @WebSocketGateway(4040, {
 	cors: {
 		origin: '*',
@@ -69,7 +73,7 @@ export class EventsGateway implements OnModuleInit {
 		this.waitingUserList.length >= 2 ? right(true) : left(false)
 
 	private handleFighting =
-		(ctx: SocketContext) =>
+		(ctx: SocketContext, socket?: Socket) =>
 		async ({
 			assembledEvent,
 			user0,
@@ -89,29 +93,48 @@ export class EventsGateway implements OnModuleInit {
 				servCtx.sendAssembledEvent2User(username, assembledEvent)
 			})
 
-			const { damagerUsername } = await ctx.listenDamageEvent(assembledEvent)
+			// const { damagerUsername } = await ctx.listenDamageEvent(assembledEvent)
 
-			console.log({ damagerUsername })
-			const randomDamage = this.getRandomDamage(10, 10)
+			socket.on(
+				`${assembledEvent}_damage`,
+				({ damagerUsername }: DamageEventResponse) => {
+					console.log({ damagerUsername })
+					const randomDamage = this.getRandomDamage(10, 10)
 
-			const opponentUserName = user0 === damagerUsername ? user1 : user0 // нужна более сторгая проверка username
-			const userName = user0 === damagerUsername ? user0 : user1
+					const opponentUserName = user0 === damagerUsername ? user1 : user0 // нужна более сторгая проверка username
+					const userName = user0 === damagerUsername ? user0 : user1
 
-			const prevOpponentHealth = this.damageMap.get(opponentUserName)
-			this.damageMap.set(opponentUserName, prevOpponentHealth - randomDamage)
+					const prevOpponentHealth = this.damageMap.get(opponentUserName)
+					this.damageMap.set(
+						opponentUserName,
+						prevOpponentHealth - randomDamage,
+					)
 
-			const userHealth = this.damageMap.get(userName)
+					const userHealth = this.damageMap.get(userName)
 
-			ctx.sendUserUpdate({
-				damager: {
-					username: userName,
-					health: userHealth,
+					socket.emit(`${assembledEvent}_user_update`, {
+						damager: {
+							username: userName,
+							health: userHealth,
+						},
+						opponent: {
+							username: opponentUserName,
+							health: prevOpponentHealth - randomDamage,
+						},
+					})
+
+					// ctx.sendUserUpdate({
+					// 	damager: {
+					// 		username: userName,
+					// 		health: userHealth,
+					// 	},
+					// 	opponent: {
+					// 		username: opponentUserName,
+					// 		health: prevOpponentHealth - randomDamage,
+					// 	},
+					// })
 				},
-				opponent: {
-					username: opponentUserName,
-					health: prevOpponentHealth - randomDamage,
-				},
-			})
+			)
 		}
 
 	@SubscribeMessage('add_user')
@@ -124,13 +147,17 @@ export class EventsGateway implements OnModuleInit {
 
 		this.isListMoreThan2()
 			.mapRight(() => {
-				ctx.setFightStatus(true)
+				socket.emit('fight_status', true)
+				// ctx.setFightStatus(true)
 				const assembleUser2EventsList = this.assembleUsers2Events()
 				console.log({ length: assembleUser2EventsList.length })
-				assembleUser2EventsList.map(this.handleFighting(ctx))
+				assembleUser2EventsList.map((d) => {
+					this.handleFighting(ctx, socket)(d)
+				})
 			})
 			.mapLeft(() => {
-				ctx.setFightStatus(false)
+				socket.emit('fight_status', false)
+				// ctx.setFightStatus(false)
 				console.log('not enought client')
 			})
 	}

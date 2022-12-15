@@ -11,34 +11,32 @@ interface UserUpdateInfo {
 	}
 }
 
-interface DamageEventResponse {
-	damagerUsername: string
-}
+
 
 export class SocketContext {
 	constructor(private readonly socket: Socket) {}
 
 	serverContext = (server: Server) => new ServerContext(server)
 
-	sendUserUpdate = (uui: UserUpdateInfo) => (assembledEvent: string) =>
-		this.socket.emit(`${assembledEvent}_user_update`, uui)
+	// sendUserUpdate = (uui: UserUpdateInfo) => (assembledEvent: string) =>
+	// 	this.socket.emit(`${assembledEvent}_user_update`, uui)
 
 	setFightStatus = (status: boolean) => this.socket.emit('fight_status', status)
 
 	joinUserRoom = (username: string) => this.socket.join(`room_${username}`)
 
-	listenDamageEvent = (
-		assembledEvent: string,
-	): Promise<DamageEventResponse> => {
-		return new Promise((resolve, reject) => {
-			this.socket.on(
-				`${assembledEvent}_damage`,
-				(data: DamageEventResponse) => {
-					return resolve(data)
-				},
-			)
-		})
-	}
+	// listenDamageEvent = (
+	// 	assembledEvent: string,
+	// ): Promise<DamageEventResponse> => {
+	// 	return new Promise((resolve, reject) => {
+	// 		this.socket.on(
+	// 			`${assembledEvent}_damage`,
+	// 			(data: DamageEventResponse) => {
+	// 				return resolve(data)
+	// 			},
+	// 		)
+	// 	})
+	// }
 }
 
 class ServerContext {
