@@ -193,9 +193,9 @@ export class BotService implements OnModuleInit {
 		})
 	}
 
-	private makeDamage = 
-	(query: TelegramBot.CallbackQuery) => ({
+	private makeDamage = (query: TelegramBot.CallbackQuery) => ({
 		[FightMode.damage]: async (uc: UserContext) => {
+			console.log({ damage_from: uc.hr.username })
 			const assembledEvent = await uc.db.assembledEvent('get')
 
 			this.socket.emit(`${assembledEvent}_damage`, {
@@ -276,7 +276,7 @@ Village - скромный городишко, в котором осталос�
 
 	private inputMessageHandler =
 		(command: RegExp) =>
-		(handlerCallBack: (args: UserContext) => any) =>
+		(handlerCallBack: (args: UserContext, _input?: string) => any) =>
 		async (msg: TelegramBot.Message, match: RegExpExecArray) => {
 			const input = match.input
 			const hr: HandledResponse = {
@@ -292,7 +292,7 @@ Village - скромный городишко, в котором осталос�
 				input !== undefined || input !== null || input || input !== ''
 
 			return isInputValid
-				? handlerCallBack(uc)
+				? handlerCallBack(uc, input)
 				: console.log({ command, isInputValid })
 		}
 
@@ -308,14 +308,27 @@ Village - скромный городишко, в котором осталос�
 		})
 
 		this.mapHandler({
-			command: /\/seton/,
-			handler: this.setStartOn,
+			command: /\/seton.[a-zA-Z]/,
+			handler: this.setUserStatus(true),
 		})
 		this.mapHandler({
-			command: /\/setoff/,
-			handler: this.setStartOff,
+			command: /\/setoff.[a-zA-Z]/,
+			handler: this.setUserStatus(false),
 		})
+
+		// this.mapHandler({
+		// 	command: /\/seton/,
+		// 	handler: this.setStartOn,
+		// })
+		// this.mapHandler({
+		// 	command: /\/setoff/,
+		// 	handler: this.setStartOff,
+		// })
 	}
+
+	private setUserStatus =
+		(status: boolean) => (uc: UserContext, _input?: string) =>
+			uc.db.setUserStatus(_input.split('.')[1].toString(), status)
 
 	private setStartOn = (uc: UserContext) => uc.db.startHelloStatus('set', true)
 	private setStartOff = (uc: UserContext) =>
