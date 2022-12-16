@@ -26,6 +26,12 @@ interface DamageEventResponse {
 	damagerUsername: string
 }
 
+export interface AssembledUser2Event {
+	assembledEvent: string
+	user0: string
+	user1: string
+}
+
 @WebSocketGateway(4040, {
 	cors: {
 		origin: '*',
@@ -58,7 +64,7 @@ export class EventsGateway implements OnModuleInit {
 		})
 	}
 
-	private assembleUsers2Events = () => {
+	private assembleUsers2Events = (): AssembledUser2Event[] => {
 		return chunk(this.waitingUserList, 2).map((userPair) => {
 			const user0 = userPair[0]
 			const user1 = userPair[1]
@@ -72,17 +78,10 @@ export class EventsGateway implements OnModuleInit {
 	private isListMoreThan2 = (): Either<boolean, boolean> =>
 		this.waitingUserList.length >= 2 ? right(true) : left(false)
 
-	private handleFighting =
-		(ctx: SocketContext, socket?: Socket) =>
-		async ({
-			assembledEvent,
-			user0,
-			user1,
-		}: {
-			assembledEvent: string
-			user0: string
-			user1: string
-		}) => {
+	private handleFighting = async (ctx: SocketContext, socket?: Socket) =>
+		// async ({ assembledEvent, user0, user1 }: AssembledUser2Event) =>
+		{
+			const { assembledEvent, user0, user1 } = ctx.getStuff()
 			console.log('handle_fighting')
 			console.log({ user0, user1 })
 			;[user0, user1].map((username, index) => {
@@ -140,7 +139,8 @@ export class EventsGateway implements OnModuleInit {
 				const assembleUser2EventsList = this.assembleUsers2Events()
 				console.log({ length: assembleUser2EventsList.length })
 				assembleUser2EventsList.map((data) => {
-					this.handleFighting(ctx, socket)(data)
+					ctx.setStuff(data)
+					this.handleFighting(ctx, socket)
 				})
 			})
 			.mapLeft(() => {

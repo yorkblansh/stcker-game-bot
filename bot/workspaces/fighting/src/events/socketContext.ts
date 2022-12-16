@@ -1,4 +1,5 @@
 import { Server, Socket } from 'socket.io'
+import { AssembledUser2Event } from './events.gateway'
 
 export interface UserUpdateInfo {
 	username: string
@@ -11,7 +12,12 @@ export interface DamagerOpponent {
 }
 
 export class SocketContext {
+	stuff: AssembledUser2Event
+
 	constructor(private readonly socket: Socket) {}
+
+	getStuff = () => this.stuff
+	setStuff = (stuff: AssembledUser2Event) => (this.stuff = stuff)
 
 	sendUserUpdate = (
 		assembledEvent: string,
@@ -25,6 +31,10 @@ export class SocketContext {
 	setFightStatus = (status: boolean) => this.socket.emit('fight_status', status)
 
 	joinUserRoom = (username: string) => this.socket.join(`room_${username}`)
+
+	listenDamage = (assembledEvent: string) => (cb) => {
+		this.socket.on(`${assembledEvent}_damage`, cb)
+	}
 
 	// listenEvent = <T>(event: string) => {
 	// 	return new Promise<T>((resolve, reject) => {
