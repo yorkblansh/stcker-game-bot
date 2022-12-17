@@ -12,12 +12,12 @@ export interface DamagerOpponent {
 }
 
 export class SocketContext {
-	private stuff: AssembledUser2Event
+	private stuff: string
 
 	constructor(private readonly socket: Socket) {}
 
 	getStuff = () => this.stuff
-	setStuff = (stuff: AssembledUser2Event) => {
+	setStuff = (stuff: string) => {
 		this.stuff = stuff
 		return this
 	}
