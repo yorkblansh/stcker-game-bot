@@ -16,13 +16,16 @@ import { createClient } from 'redis'
 import { Server, Socket } from 'socket.io'
 import chunk from 'lodash.chunk'
 import { Either, left, right } from '@sweet-monads/either'
-import { SocketContext } from './socketContext'
+import { SocketContext, UserUpdateInfo } from './socketContext'
+import md5 from 'md5'
+import { pipe } from 'fp-ts/lib/function'
+
 const { App } = pks
 export type RedisClient = ReturnType<typeof createClient>
 
 const app = App()
 
-interface DamageEventResponse {
+export interface DamageEventResponse {
 	damagerUsername: string
 }
 
@@ -30,6 +33,11 @@ export interface AssembledUser2Event {
 	assembledEvent: string
 	user0: string
 	user1: string
+}
+
+export interface DamagerOpponent {
+	damager: UserUpdateInfo
+	opponent: UserUpdateInfo
 }
 
 @WebSocketGateway(4040, {
@@ -78,52 +86,50 @@ export class EventsGateway implements OnModuleInit {
 	private isListMoreThan2 = (): Either<boolean, boolean> =>
 		this.waitingUserList.length >= 2 ? right(true) : left(false)
 
-	private handleFighting = async (ctx: SocketContext, socket?: Socket) =>
-		// async ({ assembledEvent, user0, user1 }: AssembledUser2Event) =>
-		{
-			const { assembledEvent, user0, user1 } = ctx.getStuff()
-			console.log('handle_fighting')
-			console.log({ user0, user1 })
-			;[user0, user1].map((username, index) => {
-				this.damageMap.set(username, 100)
-				console.log({ assembledEvent, username })
-				const servCtx = ctx.serverContext(this.server)
-				servCtx.joinRooms2Rooms(username, assembledEvent)
-				servCtx.sendAssembledEvent2User(username, assembledEvent)
-			})
+	private handleFighting = async (
+		ctx: SocketContext,
+		socket: Socket,
+		data: AssembledUser2Event,
+	) => {
+		const { assembledEvent, user0, user1 } = data
+		console.log('handle_fighting')
+		console.log({ user0, user1 })
+		;[user0, user1].map((username, index) => {
+			this.damageMap.set(username, 100)
+			console.log({ assembledEvent, username })
+			const servCtx = ctx.serverContext(this.server)
+			console.log({ assembled_event_: assembledEvent })
+			this.server.of('/').emit(`assembled_event_${username}`, assembledEvent)
+			this.server.in(`room_${username}`).socketsJoin(assembledEvent)
 
-			// const { damagerUsername } = await ctx.listenDamageEvent(assembledEvent)
+			// servCtx.joinRooms2Rooms(username, assembledEvent)
+			// servCtx.sendAssembledEvent2User(username, assembledEvent)
+		})
 
-			socket.on(
-				`${assembledEvent}_damage`,
-				({ damagerUsername }: DamageEventResponse) => {
-					console.log({ damagerUsername })
-					const randomDamage = this.getRandomDamage(10, 10)
+		// const { damagerUsername } = await ctx.listenDamageEvent(assembledEvent)
 
-					const opponentUserName = user0 === damagerUsername ? user1 : user0 // нужна более сторгая проверка username
-					const userName = user0 === damagerUsername ? user0 : user1
-
-					const prevOpponentHealth = this.damageMap.get(opponentUserName)
-					this.damageMap.set(
-						opponentUserName,
-						prevOpponentHealth - randomDamage,
-					)
-
-					const userHealth = this.damageMap.get(userName)
-
-					ctx.sendUserUpdate(assembledEvent, {
-						damager: {
-							username: userName,
-							health: userHealth,
-						},
-						opponent: {
-							username: opponentUserName,
-							health: prevOpponentHealth - randomDamage,
-						},
-					})
-				},
+		ctx.listenDamage(assembledEvent)((damageEventResponse) => {
+			pipe(
+				damageEventResponse,
+				this.handleDamage(data),
+				ctx.sendUserUpdate(assembledEvent),
 			)
-		}
+		})
+
+		// const damagerOpponent = this.handleDamage(data)(a)
+		// ctx.sendUserUpdate(assembledEvent)(damagerOpponent)
+
+		// pipe(
+		// 	this.handleDamage(data),
+		// 	ctx.listenDamage(assembledEvent),
+		// 	async (p) => {
+		// 		const damagerOpponent = await pdamagerOpponent
+		// 		ctx.sendUserUpdate(assembledEvent, damagerOpponent)
+		// 	},
+		// )
+
+		// socket.on(`${assembledEvent}_damage`)
+	}
 
 	@SubscribeMessage('add_user')
 	addUser(@MessageBody() username: string, @ConnectedSocket() socket: Socket) {
@@ -139,8 +145,7 @@ export class EventsGateway implements OnModuleInit {
 				const assembleUser2EventsList = this.assembleUsers2Events()
 				console.log({ length: assembleUser2EventsList.length })
 				assembleUser2EventsList.map((data) => {
-					ctx.setStuff(data)
-					this.handleFighting(ctx, socket)
+					this.handleFighting(ctx, socket, data)
 				})
 			})
 			.mapLeft(() => {
@@ -148,4 +153,37 @@ export class EventsGateway implements OnModuleInit {
 				console.log('not enought client')
 			})
 	}
+
+	private handleDamage =
+		(data: AssembledUser2Event) =>
+		({ damagerUsername }: DamageEventResponse): DamagerOpponent => {
+			const { assembledEvent, user0, user1 } = data
+			console.log({ damagerUsername })
+			const randomDamage = this.getRandomDamage(10, 10)
+
+			const opponentUserName = user0 === damagerUsername ? user1 : user0 // нужна более сторгая проверка username
+			const userName = user0 === damagerUsername ? user0 : user1
+
+			const prevOpponentHealth = this.damageMap.get(opponentUserName)
+			this.damageMap.set(opponentUserName, prevOpponentHealth - randomDamage)
+
+			const userHealth = this.damageMap.get(userName)
+
+			const damagerOpponent = {
+				damager: {
+					username: userName,
+					health: userHealth,
+				},
+				opponent: {
+					username: opponentUserName,
+					health: prevOpponentHealth - randomDamage,
+				},
+			}
+
+			console.log({ damagerOpponent })
+
+			return damagerOpponent
+			// ctx.sendUserUpdate(assembledEvent, damagerOpponent)
+			// socket.emit(`${assembledEvent}_user_update`, damagerOpponent)
+		}
 }
