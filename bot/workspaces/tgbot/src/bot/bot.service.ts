@@ -208,9 +208,7 @@ export class BotService implements OnModuleInit {
 			console.log({ damage_from: uc.hr.username })
 			const assembledEvent = await uc.db.assembledEvent('get')
 
-			this.socket.emit(`${assembledEvent}_damage`, {
-				damagerUsername: uc.hr.username,
-			})
+			this.socket.emit(`${assembledEvent}_damage`, uc.hr.username) //damagerUsername
 		},
 	})
 
@@ -274,14 +272,9 @@ Village - скромный городишко, в котором осталос�
 					`👇введите имя👇`,
 				])
 			uc.db.nicknameStatusRepeated('set', true)
-			uc.db.tempMessageIdList('set', [
-				...tgResponses,
-				recycledMessageId
-			])
+			uc.db.tempMessageIdList('set', [...tgResponses, recycledMessageId])
 
-			uc.db.tempIntervalTimerList('set', [
-				intervalTimer
-			])
+			uc.db.tempIntervalTimerList('set', [intervalTimer])
 			uc.db.nicknameStatus('set', true)
 		},
 	})
