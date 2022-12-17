@@ -88,9 +88,10 @@ export class EventsGateway implements OnModuleInit {
 
 	private handleFighting = async (
 		ctx: SocketContext,
-		socket: Socket,
-		data: AssembledUser2Event,
+		// socket: Socket,
+		// data: AssembledUser2Event,
 	) => {
+		const data = ctx.getStuff()
 		const { assembledEvent, user0, user1 } = data
 		console.log('handle_fighting')
 		console.log({ user0, user1 })
@@ -101,12 +102,7 @@ export class EventsGateway implements OnModuleInit {
 			console.log({ assembled_event_: assembledEvent })
 			this.server.of('/').emit(`assembled_event_${username}`, assembledEvent)
 			this.server.in(`room_${username}`).socketsJoin(assembledEvent)
-
-			// servCtx.joinRooms2Rooms(username, assembledEvent)
-			// servCtx.sendAssembledEvent2User(username, assembledEvent)
 		})
-
-		// const { damagerUsername } = await ctx.listenDamageEvent(assembledEvent)
 
 		ctx.listenDamage(assembledEvent)((damageEventResponse) => {
 			pipe(
@@ -115,20 +111,6 @@ export class EventsGateway implements OnModuleInit {
 				ctx.sendUserUpdate(assembledEvent),
 			)
 		})
-
-		// const damagerOpponent = this.handleDamage(data)(a)
-		// ctx.sendUserUpdate(assembledEvent)(damagerOpponent)
-
-		// pipe(
-		// 	this.handleDamage(data),
-		// 	ctx.listenDamage(assembledEvent),
-		// 	async (p) => {
-		// 		const damagerOpponent = await pdamagerOpponent
-		// 		ctx.sendUserUpdate(assembledEvent, damagerOpponent)
-		// 	},
-		// )
-
-		// socket.on(`${assembledEvent}_damage`)
 	}
 
 	@SubscribeMessage('add_user')
@@ -142,11 +124,7 @@ export class EventsGateway implements OnModuleInit {
 		this.isListMoreThan2()
 			.mapRight(() => {
 				socket.emit('fight_status', true)
-				const assembleUser2EventsList = this.assembleUsers2Events()
-				console.log({ length: assembleUser2EventsList.length })
-				assembleUser2EventsList.map((data) => {
-					this.handleFighting(ctx, socket, data)
-				})
+				this.assembleUsers2Events().map(ctx.setStuff).map(this.handleFighting)
 			})
 			.mapLeft(() => {
 				socket.emit('fight_status', false)
