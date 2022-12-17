@@ -72,12 +72,13 @@ export class EventsGateway implements OnModuleInit {
 		})
 	}
 
-	private assembleUsers2Events = (): AssembledUser2Event[] => {
-		return chunk(this.waitingUserList, 2).map((userPair) => {
-			const user0 = userPair[0]
-			const user1 = userPair[1]
-			const assembledEvent = user0 + '.' + user1
-			return { assembledEvent, user0, user1 }
+	private assembleUsers2Events = (chunkSize: number): string[] => {
+		return chunk(this.waitingUserList, chunkSize).map((userPair) => {
+			return userPair.reduce((prev, current) => prev + '.' + current)
+			// const user0 = userPair[0]
+			// const user1 = userPair[1]
+			// const assembledEvent = user0 + '.' + user1
+			// return { assembledEvent, user0, user1 }
 		})
 	}
 
@@ -91,27 +92,29 @@ export class EventsGateway implements OnModuleInit {
 		// socket: Socket,
 		// data: AssembledUser2Event,
 	) => {
-		const data = ctx.getStuff()
-		const { assembledEvent, user0, user1 } = data
+		const assembledEvent = ctx.getStuff()
+		const usernameList = assembledEvent.split('.')
+		// const { assembledEvent, user0, user1 } = data
 		console.log('handle_fighting')
-		console.log({ user0, user1 })
-		;[user0, user1].map((username, index) => {
-			this.damageMap.set(username, 100)
-			console.log({ assembledEvent, username })
-			const servCtx = ctx.serverContext(this.server)
-			console.log({ assembled_event_: assembledEvent })
-			this.server.of('/').emit(`assembled_event_${username}`, assembledEvent)
-			this.server.in(`room_${username}`).socketsJoin(assembledEvent)
-		})
+		usernameList.map(this.initFightForEachUser(assembledEvent))
 
 		ctx.listenDamage(assembledEvent)((damageEventResponse) => {
 			pipe(
 				damageEventResponse,
-				this.handleDamage(data),
+				this.handleDamage(usernameList),
 				ctx.sendUserUpdate(assembledEvent),
 			)
 		})
 	}
+
+	private initFightForEachUser =
+		(assembledEvent: string) => (username: string) => {
+			this.damageMap.set(username, 100)
+			console.log({ assembledEvent, username })
+			console.log({ assembled_event_: assembledEvent })
+			this.server.of('/').emit(`assembled_event_${username}`, assembledEvent)
+			this.server.in(`room_${username}`).socketsJoin(assembledEvent)
+		}
 
 	@SubscribeMessage('add_user')
 	addUser(@MessageBody() username: string, @ConnectedSocket() socket: Socket) {
@@ -124,7 +127,10 @@ export class EventsGateway implements OnModuleInit {
 		this.isListMoreThan2()
 			.mapRight(() => {
 				socket.emit('fight_status', true)
-				this.assembleUsers2Events().map(ctx.setStuff).map(this.handleFighting)
+				this.assembleUsers2Events(2).map((event) => {
+					ctx.setStuff(event)
+					this.handleFighting(ctx)
+				})
 			})
 			.mapLeft(() => {
 				socket.emit('fight_status', false)
@@ -132,19 +138,30 @@ export class EventsGateway implements OnModuleInit {
 			})
 	}
 
+	private mapDamagerOpponent = (
+		usernameList: string[],
+		damagerUsername: string,
+	) => ({
+		opponentUserName:
+			usernameList[0] === damagerUsername ? usernameList[1] : usernameList[0],
+		userName:
+			usernameList[0] === damagerUsername ? usernameList[0] : usernameList[1],
+	})
+
 	private handleDamage =
-		(data: AssembledUser2Event) =>
+		(usernameList: string[]) =>
 		({ damagerUsername }: DamageEventResponse): DamagerOpponent => {
-			const { assembledEvent, user0, user1 } = data
+			// const { assembledEvent, user0, user1 } = data
 			console.log({ damagerUsername })
 			const randomDamage = this.getRandomDamage(10, 10)
 
-			const opponentUserName = user0 === damagerUsername ? user1 : user0 // нужна более сторгая проверка username
-			const userName = user0 === damagerUsername ? user0 : user1
-
+			const { userName, opponentUserName } = this.mapDamagerOpponent(
+				usernameList,
+				damagerUsername,
+			)
 			const prevOpponentHealth = this.damageMap.get(opponentUserName)
-			this.damageMap.set(opponentUserName, prevOpponentHealth - randomDamage)
-
+			const updatedDamageForOpponent = prevOpponentHealth - randomDamage
+			this.damageMap.set(opponentUserName, updatedDamageForOpponent)
 			const userHealth = this.damageMap.get(userName)
 
 			const damagerOpponent = {
@@ -154,14 +171,10 @@ export class EventsGateway implements OnModuleInit {
 				},
 				opponent: {
 					username: opponentUserName,
-					health: prevOpponentHealth - randomDamage,
+					health: updatedDamageForOpponent,
 				},
 			}
-
 			console.log({ damagerOpponent })
-
 			return damagerOpponent
-			// ctx.sendUserUpdate(assembledEvent, damagerOpponent)
-			// socket.emit(`${assembledEvent}_user_update`, damagerOpponent)
 		}
 }
