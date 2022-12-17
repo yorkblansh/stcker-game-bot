@@ -37,6 +37,7 @@
 		"lodash.chunk": "^4.2.0",
 		"lodash.debounce": "^4.0.8",
 		"lodash.throttle": "^4.1.1",
+		"md5": "^2.3.0",
 		"node-telegram-bot-api": "^0.59.0",
 		"node-telegram-keyboard-wrapper": "^3.1.0",
 		"p-each-series": "^3.0.0",
