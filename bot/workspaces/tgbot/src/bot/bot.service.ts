@@ -143,7 +143,6 @@ export class BotService implements OnModuleInit {
 
 				if (fightStatus) {
 					mid.map(uc.deleteMessage)
-					this.fightMode(uc)
 				}
 			})
 
@@ -155,6 +154,7 @@ export class BotService implements OnModuleInit {
 			this.socket.on(`assembled_event_${uc.hr.username}`, (data) => {
 				uc.db.assembledEvent('set', data)
 				console.log({ [`for_${uc.hr.username}`]: data })
+				this.fightMode(uc)
 			})
 		},
 	})
@@ -166,31 +166,41 @@ export class BotService implements OnModuleInit {
 		) => `мое здоровье: ${userHealth}
 здоровье противника: ${opponentHealth}`
 
-		const assembledEvent = await uc.db.assembledEvent('get')
+		uc.db
+			.assembledEvent('get')
+			.then((assembledEvent) => {
+				this.pipeTelegramMessage([
+					() => uc.sendMessage(fightMessage(100, 100), fightModeKDB().options),
+				]).then((fightMessages) => {
+					const aggregateUserUpdate = (data: FightUserUpdate) => {
+						console.log({ fight_user_update: data })
+						// учиттывать что бы у атакующего и оппонента были разные никнеймы
+						if (data.damager.username === uc.hr.username)
+							return { me: data.damager, opponent: data.opponent }
+						else if (data.opponent.username === uc.hr.username)
+							return { me: data.opponent, opponent: data.damager }
+					}
+					console.log({ aaaaa: `${assembledEvent}_user_update` })
 
-		const fightMessages = await this.pipeTelegramMessage([
-			() => uc.sendMessage(fightMessage(100, 100), fightModeKDB().options),
-		])
-
-		const aggregateUserUpdate = (data: FightUserUpdate) => {
-			console.log({ fight_user_update: data })
-			// учиттывать что бы у атакующего и оппонента были разные никнеймы
-			if (data.damager.username === uc.hr.username)
-				return { me: data.damager, opponent: data.opponent }
-			else if (data.opponent.username === uc.hr.username)
-				return { me: data.opponent, opponent: data.damager }
-		}
-
-		this.socket.on(`${assembledEvent}_user_update`, (data: FightUserUpdate) => {
-			const { me, opponent } = aggregateUserUpdate(data)
-			pipe(
-				fightMessages[0],
-				uc.editMessage(
-					fightMessage(me.health, opponent.health),
-					fightModeKDB().editMessageOptions,
-				),
-			)
-		})
+					this.socket.on(
+						`${assembledEvent}_user_update`,
+						(data: FightUserUpdate) => {
+							console.log({ _user_update: 'exist' })
+							const { me, opponent } = aggregateUserUpdate(data)
+							pipe(
+								fightMessages[0],
+								uc.editMessage(
+									fightMessage(me.health, opponent.health),
+									fightModeKDB().editMessageOptions,
+								),
+							)
+						},
+					)
+				})
+			})
+			.catch((er) => {
+				console.log({ asmbleDATA_ERROR: er })
+			})
 	}
 
 	private makeDamage = (query: TelegramBot.CallbackQuery) => ({
@@ -264,9 +274,14 @@ Village - скромный городишко, в котором осталос�
 					`👇введите имя👇`,
 				])
 			uc.db.nicknameStatusRepeated('set', true)
-			uc.db.tempMessageIdList('set', [...tgResponses, recycledMessageId])
+			uc.db.tempMessageIdList('set', [
+				...tgResponses,
+				recycledMessageId
+			])
 
-			uc.db.tempIntervalTimerList('set', [intervalTimer])
+			uc.db.tempIntervalTimerList('set', [
+				intervalTimer
+			])
 			uc.db.nicknameStatus('set', true)
 		},
 	})
