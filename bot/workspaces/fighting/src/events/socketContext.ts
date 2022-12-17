@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io'
-import { AssembledUser2Event, DamageEventResponse } from './events.gateway'
+import { AssembledUser2Event } from './events.gateway'
 
 export interface UserUpdateInfo {
 	username: string
@@ -33,15 +33,9 @@ export class SocketContext {
 
 	joinUserRoom = (username: string) => this.socket.join(`room_${username}`)
 
-	listenDamage =
-		(assembledEvent: string) => (cb1: (dop: DamageEventResponse) => any) => {
-			this.socket.on(
-				`${assembledEvent}_damage`,
-				(data: DamageEventResponse) => {
-					cb1(data)
-				},
-			)
-		}
+	listenDamage = (assembledEvent: string) => (cb1: (dop: string) => any) => {
+		this.socket.on(`${assembledEvent}_damage`, (data: string) => cb1(data))
+	}
 
 	// listenEvent = <T>(event: string) => {
 	// 	return new Promise<T>((resolve, reject) => {
