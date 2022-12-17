@@ -25,9 +25,9 @@ export type RedisClient = ReturnType<typeof createClient>
 
 const app = App()
 
-export interface DamageEventResponse {
-	damagerUsername: string
-}
+// export interface DamageEventResponse {
+// 	damagerUsername: string
+// }
 
 export interface AssembledUser2Event {
 	assembledEvent: string
@@ -72,32 +72,23 @@ export class EventsGateway implements OnModuleInit {
 		})
 	}
 
-	private assembleUsers2Events = (chunkSize: number): string[] => {
-		return chunk(this.waitingUserList, chunkSize).map((userPair) => {
-			return userPair.reduce((prev, current) => prev + '.' + current)
-			// const user0 = userPair[0]
-			// const user1 = userPair[1]
-			// const assembledEvent = user0 + '.' + user1
-			// return { assembledEvent, user0, user1 }
-		})
-	}
+	private assembleUsers2Events = (chunkSize: number): string[] =>
+		chunk(this.waitingUserList, chunkSize) //
+			.map((userPair) =>
+				userPair //
+					.reduce((prev, current) => prev + '.' + current),
+			)
 
 	private getRandomDamage = (min: number, max: number) => 10
 
 	private isListMoreThan2 = (): Either<boolean, boolean> =>
 		this.waitingUserList.length >= 2 ? right(true) : left(false)
 
-	private handleFighting = async (
-		ctx: SocketContext,
-		// socket: Socket,
-		// data: AssembledUser2Event,
-	) => {
+	private handleFighting = async (ctx: SocketContext) => {
+		console.log('handle_fighting')
 		const assembledEvent = ctx.getStuff()
 		const usernameList = assembledEvent.split('.')
-		// const { assembledEvent, user0, user1 } = data
-		console.log('handle_fighting')
 		usernameList.map(this.initFightForEachUser(assembledEvent))
-
 		ctx.listenDamage(assembledEvent)((damageEventResponse) => {
 			pipe(
 				damageEventResponse,
@@ -122,15 +113,12 @@ export class EventsGateway implements OnModuleInit {
 		this.waitingUserList.push(username)
 		this.damageMap.set(username, 100)
 		ctx.joinUserRoom(username)
-		// socket.join(`room_${username}`)
 
 		this.isListMoreThan2()
 			.mapRight(() => {
 				socket.emit('fight_status', true)
-				this.assembleUsers2Events(2).map((event) => {
-					ctx.setStuff(event)
-					this.handleFighting(ctx)
-				})
+				this.assembleUsers2Events(2).map(ctx.setStuff)
+				this.handleFighting(ctx)
 			})
 			.mapLeft(() => {
 				socket.emit('fight_status', false)
@@ -138,7 +126,7 @@ export class EventsGateway implements OnModuleInit {
 			})
 	}
 
-	private mapDamagerOpponent = (
+	private mapDamagerAndOpponentUsernames = (
 		usernameList: string[],
 		damagerUsername: string,
 	) => ({
@@ -150,15 +138,12 @@ export class EventsGateway implements OnModuleInit {
 
 	private handleDamage =
 		(usernameList: string[]) =>
-		({ damagerUsername }: DamageEventResponse): DamagerOpponent => {
-			// const { assembledEvent, user0, user1 } = data
+		(damagerUsername: string): DamagerOpponent => {
 			console.log({ damagerUsername })
 			const randomDamage = this.getRandomDamage(10, 10)
 
-			const { userName, opponentUserName } = this.mapDamagerOpponent(
-				usernameList,
-				damagerUsername,
-			)
+			const { userName, opponentUserName } =
+				this.mapDamagerAndOpponentUsernames(usernameList, damagerUsername)
 			const prevOpponentHealth = this.damageMap.get(opponentUserName)
 			const updatedDamageForOpponent = prevOpponentHealth - randomDamage
 			this.damageMap.set(opponentUserName, updatedDamageForOpponent)
