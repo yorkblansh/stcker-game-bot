@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io'
-import { AssembledUser2Event } from './events.gateway'
+import { AssembledUser2Event, DamageEventResponse } from './events.gateway'
 
 export interface UserUpdateInfo {
 	username: string
@@ -19,12 +19,10 @@ export class SocketContext {
 	getStuff = () => this.stuff
 	setStuff = (stuff: AssembledUser2Event) => (this.stuff = stuff)
 
-	sendUserUpdate = (
-		assembledEvent: string,
-		damagerOpponent: DamagerOpponent,
-	) => {
-		this.socket.emit(`${assembledEvent}_user_update`, damagerOpponent)
-	}
+	sendUserUpdate =
+		(assembledEvent: string) => (damagerOpponent: DamagerOpponent) => {
+			this.socket.emit(`${assembledEvent}_user_update`, damagerOpponent)
+		}
 
 	serverContext = (server: Server) => new ServerContext(server)
 
@@ -32,9 +30,15 @@ export class SocketContext {
 
 	joinUserRoom = (username: string) => this.socket.join(`room_${username}`)
 
-	listenDamage = (assembledEvent: string) => (cb) => {
-		this.socket.on(`${assembledEvent}_damage`, cb)
-	}
+	listenDamage =
+		(assembledEvent: string) => (cb1: (dop: DamageEventResponse) => any) => {
+			this.socket.on(
+				`${assembledEvent}_damage`,
+				(data: DamageEventResponse) => {
+					cb1(data)
+				},
+			)
+		}
 
 	// listenEvent = <T>(event: string) => {
 	// 	return new Promise<T>((resolve, reject) => {
