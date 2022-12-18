@@ -6,6 +6,7 @@ import { EventsModule } from './events/events.module'
 // import { BotService } from './bot/bot.service'
 // import { FsService } from './fs/fs.service';
 // import { FsModule } from './fs/fs.module';
+import { DbService } from './db/db.service';
 
 @Module({
 	imports: [EventsModule],

@@ -43,6 +43,40 @@ export class UserContext {
 		this.db = new DBFactory(this.redis, this.hr.username)
 	}
 
+	private jsonParse = <T>(str: string): T => {
+		try {
+			return JSON.parse(str) as T
+		} catch (error) {
+			console.log({ error })
+		}
+	}
+
+	deleteAllMessages = async () => {
+		const logErrorMessage = () =>
+			console.log({
+				deleteAllMessages_ERROR: 'tempMessageIdList is undefined',
+			})
+
+		pipe(
+			await this.db.tempMessageIdList('get'),
+			this.jsonParse<string[]>,
+			(list) => (list ? list.map(this.deleteMessage) : logErrorMessage()),
+		)
+	}
+
+	deleteIntervalTimerList = async () => {
+		const logErrorMessage = () =>
+			console.log({
+				deleteAllMessages_ERROR: 'tempMessageIdList is undefined',
+			})
+
+		pipe(
+			await this.db.tempIntervalTimerList('get'),
+			this.jsonParse<string[]>,
+			(list) => (list ? list.map(clearInterval) : logErrorMessage()),
+		)
+	}
+
 	editMessage =
 		(text: string, options?: TelegramBot.EditMessageTextOptions) =>
 		async (messageId: string | number) => {

@@ -13,12 +13,19 @@ export interface DamagerOpponent {
 
 export class SocketContext {
 	private stuff: string
+	private username: string
 
 	constructor(private readonly socket: Socket) {}
 
 	getStuff = () => this.stuff
 	setStuff = (stuff: string) => {
 		this.stuff = stuff
+		return this
+	}
+
+	getUsername = () => this.username
+	setUsername = (username: string) => {
+		this.username = username
 		return this
 	}
 

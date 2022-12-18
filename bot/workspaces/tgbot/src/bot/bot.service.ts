@@ -17,6 +17,7 @@ import { WaitArena, waitArenaKBD } from './utils/keyboards/waitArenaKBD'
 import { io, Socket } from 'socket.io-client'
 import { pipe } from 'fp-ts/lib/function'
 import { FightMode, fightModeKDB } from './utils/keyboards/fightModeKBD'
+import { Either, left, right } from '@sweet-monads/either'
 
 dotenv.config()
 
@@ -46,6 +47,7 @@ interface FightUserUpdate {
 }
 @Injectable()
 export class BotService implements OnModuleInit {
+	private adminList: string[] = ['yorkblansh', 'yorkblansh1']
 	private bot: TelegramBot
 	private fight: {
 		waitingRoom: string[]
@@ -115,17 +117,11 @@ export class BotService implements OnModuleInit {
 
 	private arenaConfirmation = (query: TelegramBot.CallbackQuery) => ({
 		[WaitArena.back]: async (uc: UserContext) => {
-			const tempMessageIdList = JSON.parse(
-				await uc.db.tempMessageIdList('get'),
-			) as string[]
-			tempMessageIdList.map(uc.deleteMessage)
+			uc.deleteAllMessages()
 			this.menuSlidesHandler(uc)
 		},
 		[WaitArena.fight]: async (uc: UserContext) => {
-			const tempMessageIdList = JSON.parse(
-				await uc.db.tempMessageIdList('get'),
-			) as string[]
-			tempMessageIdList.map(uc.deleteMessage)
+			uc.deleteAllMessages()
 
 			const mid = await this.pipeTelegramMessage([
 				() => uc.sendMessage(`waiting for concurent`),
@@ -207,7 +203,6 @@ export class BotService implements OnModuleInit {
 		[FightMode.damage]: async (uc: UserContext) => {
 			console.log({ damage_from: uc.hr.username })
 			const assembledEvent = await uc.db.assembledEvent('get')
-
 			this.socket.emit(`${assembledEvent}_damage`, uc.hr.username) //damagerUsername
 		},
 	})
@@ -246,19 +241,12 @@ Village - скромный городишко, в котором осталос�
 
 	private nameConfirmationHandler = (query: TelegramBot.CallbackQuery) => ({
 		[NameConfirmation.yes]: async (uc: UserContext) => {
-			const tempMessageIdList = JSON.parse(
-				await uc.db.tempMessageIdList('get'),
-			) as string[]
-			tempMessageIdList.map(uc.deleteMessage)
-
+			uc.deleteAllMessages()
 			uc.db.nicknameStatusRepeated('set', false)
 			this.menuSlidesHandler(uc)
 		},
 		[NameConfirmation.no]: async (uc: UserContext) => {
-			const tempMessageIdList = JSON.parse(
-				await uc.db.tempMessageIdList('get'),
-			) as string[]
-			tempMessageIdList.map(uc.deleteMessage)
+			uc.deleteAllMessages()
 			const tgResponses = await this.pipeTelegramMessage([
 				() => uc.sendSticker(sticker.breaking_hart_bunny),
 				() =>
@@ -324,6 +312,11 @@ Village - скромный городишко, в котором осталос�
 			handler: this.setUserStatus(false),
 		})
 
+		this.mapHandler({
+			command: /\/flush.all/,
+			handler: this.flushAll,
+		})
+
 		// this.mapHandler({
 		// 	command: /\/seton/,
 		// 	handler: this.setStartOn,
@@ -333,6 +326,18 @@ Village - скромный городишко, в котором осталос�
 		// 	handler: this.setStartOff,
 		// })
 	}
+
+	private isUserAdmin = (username: string): Either<boolean, boolean> =>
+		this.adminList.includes(username) ? right(true) : left(false)
+
+	private flushAll = (uc: UserContext) =>
+		this.isUserAdmin(uc.hr.username)
+			.mapRight(async () => {
+				await uc.sendMessage('db was flushed')
+				const flush_result = await uc.db.FLUSH_ALL()
+				console.log({ flush_result })
+			})
+			.mapLeft(() => console.log('user is not admin'))
 
 	private setUserStatus =
 		(status: boolean) => (uc: UserContext, _input?: string) =>
@@ -367,18 +372,17 @@ Village - скромный городишко, в котором осталос�
 					uc.db.tempMessageIdList('set', [...tgResponses])
 				}),
 		)
-		const tempMessageIdList = JSON.parse(
-			await uc.db.tempMessageIdList('get'),
-		) as string[]
-		tempMessageIdList.map(uc.deleteMessage)
+		await uc.deleteIntervalTimerList()
+
+		uc.deleteAllMessages()
 
 		uc.db.tempMessageIdList('set', '')
 		uc.deleteMessage(userMessageId)
 
-		const tempIntervalTimerList = JSON.parse(
-			await uc.db.tempIntervalTimerList('get'),
-		) as string[]
-		tempIntervalTimerList.map(clearInterval)
+		// const tempIntervalTimerList = JSON.parse(
+		// 	await uc.db.tempIntervalTimerList('get'),
+		// ) as string[]
+		// tempIntervalTimerList.map(clearInterval)
 
 		uc.db.nicknameStatus('set', false)
 	}
@@ -426,10 +430,11 @@ Village - скромный городишко, в котором осталос�
 
 	private postoyalets = (query: TelegramBot.CallbackQuery) => ({
 		[LocationSwitch.arena]: async (uc: UserContext) => {
-			const tempMessageIdList = JSON.parse(
-				await uc.db.tempMessageIdList('get'),
-			) as string[]
-			tempMessageIdList.map(uc.deleteMessage)
+			uc.deleteAllMessages()
+			// const tempMessageIdList = JSON.parse(
+			// 	await uc.db.tempMessageIdList('get'),
+			// ) as string[]
+			// tempMessageIdList.map(uc.deleteMessage)
 
 			const tgResponses = await this.pipeTelegramMessage([
 				() => uc.sendSticker(sticker.postoyalets),

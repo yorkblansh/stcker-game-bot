@@ -120,4 +120,6 @@ export class DBFactory {
 		'getMonad',
 		monadPredicat,
 	)
+
+	FLUSH_ALL = () => this.redis.flushAll()
 }
