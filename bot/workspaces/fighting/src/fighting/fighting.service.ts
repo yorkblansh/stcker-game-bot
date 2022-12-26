@@ -56,18 +56,26 @@ export class FightingInstanceService {
 		return jj.length >= 2 ? right(true) : left(false)
 	}
 
+	private checkReadyStatus = (username: string, usernameList: string[]) => {
+		this.db.ready2FightUserList.upsertUser(username, true)
+		return {
+			username,
+			areAllUsersReady: usernameList
+				.map(this.db.ready2FightUserList.getUserInfo)
+				.every((s) => s === true),
+		}
+	}
+
 	private handleFighting = async (ctx: SocketContext) => {
 		console.log('handle_fighting')
 		const assembledEvent = ctx.getStuff()
 		const usernameList = assembledEvent.split('.')
-		const areAllUsersReady = usernameList
-			.map(this.db.ready2FightUserList.getUserInfo)
-			.every((s) => s === true)
+
 		usernameList.map(this.initFightForEachUser(assembledEvent))
 
 		ctx.listenReadyStatus(assembledEvent)((username) => {
 			pipe(
-				{ areAllUsersReady, username },
+				this.checkReadyStatus(username, usernameList),
 				pipe(assembledEvent, ctx.sendUserReady2FightStatus),
 			)
 		})
