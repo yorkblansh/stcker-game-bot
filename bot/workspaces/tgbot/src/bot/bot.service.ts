@@ -156,25 +156,47 @@ export class BotService implements OnModuleInit {
 	})
 
 	private fightMode = async (uc: UserContext) => {
-		const fightMessage = (
-			userHealth: number,
-			opponentHealth: number,
-		) => `мое здоровье: ${userHealth}
-здоровье противника: ${opponentHealth}`
+		const mapPets = {
+			yorkblansh: { sticker: sticker.pets.spider, name: 'Undertaker' },
+			racer1795: { sticker: sticker.pets.pug_default, name: 'Щенок' },
+			yorkblansh1: { sticker: sticker.pets.spider, name: 'Undertaker1' }
+		}
+
+		const mainMessage = (
+			petName: string,
+			petHealth: number,
+			damage?: number,
+		) => `<i> ${petName}</i>
+❤️[HP] - (${petHealth})
+${damage ? `💢[Damage] - (${damage})` : ''}`
 
 		uc.db
 			.assembledEvent('get')
 			.then((assembledEvent) => {
 				this.pipeTelegramMessage([
-					() => uc.sendMessage(fightMessage(100, 100), fightModeKDB().options),
+					() => uc.sendMessage('бой начинается'),
+					() => uc.sendSticker(mapPets[uc.hr.username]['sticker']),
+					() =>
+						uc.sendMessage(
+							mainMessage(mapPets[uc.hr.username]['name'], 1000),
+							fightModeKDB('ready').options,
+						),
 				]).then((fightMessages) => {
 					const aggregateUserUpdate = (data: FightUserUpdate) => {
 						console.log({ fight_user_update: data })
 						// учиттывать что бы у атакующего и оппонента были разные никнеймы
 						if (data.damager.username === uc.hr.username)
-							return { me: data.damager, opponent: data.opponent }
+							return {
+								me: data.damager,
+								opponent: data.opponent,
+								isMyTurn: false,
+							}
 						else if (data.opponent.username === uc.hr.username)
-							return { me: data.opponent, opponent: data.damager }
+							return {
+								me: data.opponent,
+								opponent: data.damager,
+								isMyTurn: true,
+							}
 					}
 					console.log({ aaaaa: `${assembledEvent}_user_update` })
 
@@ -182,14 +204,44 @@ export class BotService implements OnModuleInit {
 						`${assembledEvent}_user_update`,
 						(data: FightUserUpdate) => {
 							console.log({ _user_update: 'exist' })
-							const { me, opponent } = aggregateUserUpdate(data)
+							const { me, opponent, isMyTurn } = aggregateUserUpdate(data)
 							pipe(
 								fightMessages[0],
-								uc.editMessage(
-									fightMessage(me.health, opponent.health),
-									fightModeKDB().editMessageOptions,
-								),
+								uc.editMessage(isMyTurn ? 'ваш ход' : 'ход вашего противника'),
 							)
+
+							this.pipeTelegramMessage([
+								() =>
+									uc.sendSticker(
+										mapPets[
+											isMyTurn ? data.opponent.username : data.opponent.username
+										]['sticker'],
+									),
+								() =>
+									uc.sendMessage(
+										mainMessage(
+											mapPets[
+												isMyTurn
+													? data.opponent.username
+													: data.opponent.username
+											],
+											isMyTurn ? data.opponent.health : data.opponent.health,
+											111,
+										),
+									),
+							])
+							// pipe(
+							// 	fightMessages[1],
+							// 	uc.,
+							// )
+
+							// pipe(
+							// 	fightMessages[2],
+							// 	uc.editMessage(
+							// 		mainMessage(me.health, opponent.health),
+							// 		fightModeKDB('damage').editMessageOptions,
+							// 	),
+							// )
 						},
 					)
 				})
