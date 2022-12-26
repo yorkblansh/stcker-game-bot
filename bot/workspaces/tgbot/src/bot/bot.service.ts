@@ -159,7 +159,7 @@ export class BotService implements OnModuleInit {
 		const mapPets = {
 			yorkblansh: { sticker: sticker.pets.spider, name: 'Undertaker' },
 			racer1795: { sticker: sticker.pets.pug_default, name: 'Щенок' },
-			yorkblansh1: { sticker: sticker.pets.spider, name: 'Undertaker1' }
+			yorkblansh1: { sticker: sticker.pets.spider, name: 'Undertaker1' },
 		}
 
 		const mainMessage = (
@@ -256,6 +256,10 @@ ${damage ? `💢[Damage] - (${damage})` : ''}`
 			console.log({ damage_from: uc.hr.username })
 			const assembledEvent = await uc.db.assembledEvent('get')
 			this.socket.emit(`${assembledEvent}_damage`, uc.hr.username) //damagerUsername
+		},
+		[FightMode.ready]: async (uc: UserContext) => {
+			const assembledEvent = await uc.db.assembledEvent('get')
+			this.socket.emit(`${assembledEvent}_ready`, uc.hr.username)
 		},
 	})
 
