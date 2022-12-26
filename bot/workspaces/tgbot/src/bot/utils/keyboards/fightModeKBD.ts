@@ -8,23 +8,33 @@ import {
 export enum FightMode {
 	generic = 'fight_mode',
 	damage = 'fight_mode.damage',
+	ready = 'fight_mode.ready',
 	// no = 'fight_mode.no',
 }
 
-export const fightModeKDB = () => {
+type kdbType = 'damage' | 'ready'
+
+export const fightModeKDB = (kdbType: kdbType) => {
+	const mapButton = {
+		damage: new InlineKeyboardButton(
+			'🗡НАНЕСТИ УРОН🗡',
+			'callback_data',
+			FightMode.damage,
+		),
+		ready: new InlineKeyboardButton(
+			'👍ГОТОВ👍',
+			'callback_data',
+			FightMode.ready,
+		),
+	}
+
 	const keyboard = new InlineKeyboard()
 	keyboard.push(
 		/**
 		 * Forcing generic type here due to InlineKeyboardButton generic.
 		 * See Row's file for a better Typescript explanation
 		 */
-		new Row<InlineKeyboardButton>(
-			new InlineKeyboardButton(
-				'🗡НАНЕСТИ УРОН🗡',
-				'callback_data',
-				FightMode.damage,
-			),
-		),
+		new Row<InlineKeyboardButton>(mapButton[kdbType]),
 	)
 
 	const options: TelegramBot.SendMessageOptions = {
