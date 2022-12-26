@@ -3,11 +3,19 @@ import { Injectable } from '@nestjs/common'
 @Injectable()
 export class DbService {
 	private _waitingUserList: string[]
+	private _ready2FightUserList: Map<string, boolean>
 	private _damageMap: Map<string, number>
 
 	constructor() {
 		this._waitingUserList = []
 		this._damageMap = new Map()
+		this._ready2FightUserList = new Map()
+	}
+
+	ready2FightUserList = {
+		upsertUser: (username: string, status: boolean) =>
+			this._ready2FightUserList.set(username, status),
+		getUserInfo: (username: string) => this._ready2FightUserList.get(username),
 	}
 
 	waitingUserList = {
