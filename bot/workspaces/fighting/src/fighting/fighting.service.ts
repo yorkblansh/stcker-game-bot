@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { Either, left, right } from '@sweet-monads/either'
-import { pipe } from 'fp-ts/lib/function'
+import { flow, pipe } from 'fp-ts/lib/function'
 import chunk from 'lodash.chunk'
 import { Server, Socket } from 'socket.io'
 import { DbService } from '../db/db.service'
@@ -23,8 +23,9 @@ export class FightingInstanceService {
 	) {
 		this.username = ctx.getUsername()
 
+		this.db.ready2FightUserList.upsertUser(this.username, false)
 		this.db.waitingUserList.append(this.username)
-		this.db.damageMap.upsertUser(this.username, 100)
+		this.db.damageMap.upsertUser(this.username, 1000)
 		ctx.joinUserRoom(this.username)
 
 		this.tryNewUser()
@@ -59,10 +60,21 @@ export class FightingInstanceService {
 		console.log('handle_fighting')
 		const assembledEvent = ctx.getStuff()
 		const usernameList = assembledEvent.split('.')
+		const areAllUsersReady = usernameList
+			.map(this.db.ready2FightUserList.getUserInfo)
+			.every((s) => s === true)
 		usernameList.map(this.initFightForEachUser(assembledEvent))
-		ctx.listenDamage(assembledEvent)((damageEventResponse) => {
+
+		ctx.listenReadyStatus(assembledEvent)((username) => {
 			pipe(
-				damageEventResponse,
+				{ areAllUsersReady, username },
+				pipe(assembledEvent, ctx.sendUserReady2FightStatus),
+			)
+		})
+
+		ctx.listenDamage(assembledEvent)((damagerUsername) => {
+			pipe(
+				damagerUsername,
 				this.handleDamage(usernameList),
 				ctx.sendUserUpdate(assembledEvent),
 			)
@@ -71,11 +83,12 @@ export class FightingInstanceService {
 
 	private initFightForEachUser =
 		(assembledEvent: string) => (username: string) => {
-			this.db.damageMap.upsertUser(username, 100)
+			this.db.damageMap.upsertUser(username, 1000)
 			console.log({ assembledEvent, username })
 			console.log({ assembled_event_: assembledEvent })
 			this.server.of('/').emit(`assembled_event_${username}`, assembledEvent)
 			this.server.in(`room_${username}`).socketsJoin(assembledEvent)
+			return username
 		}
 
 	private handleDamage =
