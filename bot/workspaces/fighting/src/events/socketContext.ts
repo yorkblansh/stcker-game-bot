@@ -34,11 +34,25 @@ export class SocketContext {
 			this.socket.emit(`${assembledEvent}_user_update`, damagerOpponent)
 		}
 
+	sendUserReady2FightStatus =
+		(assembledEvent: string) =>
+		({ areAllUsersReady, username }) => {
+			this.socket.emit(`${assembledEvent}_ready2fight`, {
+				areAllUsersReady,
+				username,
+			})
+		}
+
 	serverContext = (server: Server) => new ServerContext(server)
 
 	setFightStatus = (status: boolean) => this.socket.emit('fight_status', status)
 
 	joinUserRoom = (username: string) => this.socket.join(`room_${username}`)
+
+	listenReadyStatus =
+		(assembledEvent: string) => (cb1: (dop: string) => any) => {
+			this.socket.on(`${assembledEvent}_ready`, (data: string) => cb1(data))
+		}
 
 	listenDamage = (assembledEvent: string) => (cb1: (dop: string) => any) => {
 		this.socket.on(`${assembledEvent}_damage`, (data: string) => cb1(data))
