@@ -22,7 +22,7 @@
 		"test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
 		"test:e2e": "jest --config ./test/jest-e2e.json",
 		"tsc_test": "tsc ./scripts/symlink-shared",
-		"symlink-shared": "node ./scripts/symlink-shared/index.js"
+		"symlink-shared": "ts-node ../scripts/symlink-shared/index.ts"
 	},
 	"dependencies": {
 		"@nestjs/axios": "^0.1.0",
