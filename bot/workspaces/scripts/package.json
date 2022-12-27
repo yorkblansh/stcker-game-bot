@@ -1,0 +1,9 @@
+{
+	"name": "scripts",
+	"scripts": {
+		"symlink-shared": "ts-node ./symlink-shared/index.ts"
+	},
+	"devDependencies": {
+		"ts-node": "^10.9.1"
+	}
+}
