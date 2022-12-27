@@ -2,6 +2,9 @@
 /dist
 /node_modules
 
+#stuff created by symlinks
+/src/shared
+
 # Logs
 logs
 *.log
