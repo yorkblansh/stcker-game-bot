@@ -2,10 +2,13 @@ import { defineConfig } from 'vite'
 import { VitePluginNode } from 'vite-plugin-node'
 
 export default defineConfig({
+	resolve: {
+		preserveSymlinks: false,
+	},
 	// ...vite configures
 	server: {
 		// vite server configs, for details see \[vite doc\](https://vitejs.dev/config/#server-host)
-		port: 3000
+		port: 3000,
 	},
 	plugins: [
 		...VitePluginNode({
@@ -24,8 +27,8 @@ export default defineConfig({
 			// 'swc' compiler is supported to use as well for frameworks
 			// like Nestjs (esbuild dont support 'emitDecoratorMetadata' yet)
 			// you need to INSTALL `@swc/core` as dev dependency if you want to use swc
-			tsCompiler: 'swc'
-		})
+			tsCompiler: 'swc',
+		}),
 	],
 	optimizeDeps: {
 		// Vite does not work well with optionnal dependencies,
@@ -36,7 +39,7 @@ export default defineConfig({
 			'cache-manager',
 			'class-transformer',
 			'class-validator',
-			'fastify-swagger'
-		]
-	}
+			'fastify-swagger',
+		],
+	},
 })
