@@ -1,4 +1,5 @@
 import { Server, Socket } from 'socket.io'
+import { SocketIOEvents as se } from '../shared/SocketIOEvents'
 import { AssembledUser2Event } from './events.gateway'
 
 export interface UserUpdateInfo {
@@ -31,7 +32,7 @@ export class SocketContext {
 
 	sendUserUpdate =
 		(assembledEvent: string) => (damagerOpponent: DamagerOpponent) => {
-			this.socket.emit(`${assembledEvent}_user_update`, damagerOpponent)
+			this.socket.emit(se._user_update(assembledEvent), damagerOpponent)
 		}
 
 	sendUserReady2FightStatus =
