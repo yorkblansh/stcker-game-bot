@@ -5,7 +5,7 @@ import chunk from 'lodash.chunk'
 import { Server, Socket } from 'socket.io'
 import { UserReady2FitghStatus } from '../shared/interfaces'
 import { DbService } from '../db/db.service'
-import Array from 'fp-ts/Array'
+import Array from 'fp-ts/lib/Array'
 import {
 	_ServerContext,
 	UserUpdateInfo,
@@ -89,7 +89,7 @@ export class FightingInstanceService {
 		const sharedEvent = ctx.getSharedEvent()
 		const usernameList = sharedEvent.split('.')
 
-		this.initFightForEachUser(sharedEvent)
+		this.initFightForEachUser(sharedEvent, usernameList)
 
 		ctx.listenReadyUserStatus((username) =>
 			pipe(
@@ -122,21 +122,23 @@ export class FightingInstanceService {
 			return data
 		}
 
-	private initFightForEachUser =
-		(sharedEvent: string) => (usernameList: string[]) =>
-			pipe(
-				usernameList,
-				Array.map((username) => {
-					this.db.damageMap.upsertUser(username, 1000)
-					console.log({ sharedEvent, username })
-					console.log({ assembled_event_: sharedEvent })
-					this.server
-						.of('/')
-						.emit(`assembled_event_${username}`, sharedEvent)
-					this.server.in(`room_${username}`).socketsJoin(sharedEvent)
-					return username
-				}),
-			)
+	private initFightForEachUser = (
+		sharedEvent: string,
+		usernameList: string[],
+	) =>
+		pipe(
+			usernameList,
+			Array.map((username) => {
+				this.db.damageMap.upsertUser(username, 1000)
+				console.log({ sharedEvent, username })
+				console.log({ assembled_event_: sharedEvent })
+				this.server
+					.of('/')
+					.emit(`assembled_event_${username}`, sharedEvent)
+				this.server.in(`room_${username}`).socketsJoin(sharedEvent)
+				return username
+			}),
+		)
 
 	private handleDamage =
 		(usernameList: string[]) =>
