@@ -5,7 +5,7 @@ import chunk from 'lodash.chunk'
 import { Server, Socket } from 'socket.io'
 import { UserReady2FitghStatus } from '../shared/interfaces'
 import { DbService } from '../db/db.service'
-import { size as arraySize } from 'fp-ts/Array'
+import Array from 'fp-ts/Array'
 import {
 	_ServerContext,
 	UserUpdateInfo,
@@ -66,7 +66,7 @@ export class FightingInstanceService {
 		pipe(
 			this.db.waitingUserList.getList(),
 			//
-			arraySize,
+			Array.size,
 			(size) => (size >= 2 ? right(true) : left(false)),
 		)
 
@@ -80,6 +80,7 @@ export class FightingInstanceService {
 			areAllUsersReady: usernameList
 				.map(this.db.ready2FightUserList.getUserInfo)
 				.every((s) => s === true),
+			usernameList,
 		}
 	}
 
@@ -88,48 +89,54 @@ export class FightingInstanceService {
 		const sharedEvent = ctx.getSharedEvent()
 		const usernameList = sharedEvent.split('.')
 
-		usernameList.map(this.initFightForEachUser(sharedEvent))
+		this.initFightForEachUser(sharedEvent)
 
-		ctx.listenReadyUserStatus((username) => {
+		ctx.listenReadyUserStatus((username) =>
 			pipe(
 				this.checkReadyStatus(username, usernameList),
-				sendFirstMessage,
+				this.sendFirstMessage(ctx.sendUserUpdate),
 				ctx.sendUserReady2FightStatus,
-			)
-		})
+			),
+		)
 
-		const sendFirstMessage = (data: UserReady2FitghStatus) => {
-			const { areAllUsersReady } = data
+		ctx.listenDamagerUsername((damagerUsername) =>
+			pipe(
+				damagerUsername,
+				this.handleDamage(usernameList),
+				ctx.sendUserUpdate,
+			),
+		)
+	}
+
+	sendFirstMessage =
+		(sendUserUpdate: _ServerContext['sendUserUpdate']) =>
+		(data: UserReady2FitghStatus) => {
+			const { areAllUsersReady, usernameList } = data
 			const dop: DamagerOpponent = {
 				damager: { username: usernameList[0], health: 1000 },
 				opponent: { username: usernameList[1], health: 1000 },
 			}
 			areAllUsersReady
-				? setTimeout(() => pipe(dop, ctx.sendUserUpdate), 2000)
+				? setTimeout(() => pipe(dop, sendUserUpdate), 2000)
 				: console.log({ warning: 'not all users are ready' })
 			return data
 		}
 
-		ctx.listenDamage((damagerUsername) => {
-			pipe(
-				damagerUsername,
-				this.handleDamage(usernameList),
-				ctx.sendUserUpdate,
-			)
-		})
-	}
-
 	private initFightForEachUser =
-		(sharedEvent: string) => (username: string) => {
-			this.db.damageMap.upsertUser(username, 1000)
-			console.log({ sharedEvent, username })
-			console.log({ assembled_event_: sharedEvent })
-			this.server
-				.of('/')
-				.emit(`assembled_event_${username}`, sharedEvent)
-			this.server.in(`room_${username}`).socketsJoin(sharedEvent)
-			return username
-		}
+		(sharedEvent: string) => (usernameList: string[]) =>
+			pipe(
+				usernameList,
+				Array.map((username) => {
+					this.db.damageMap.upsertUser(username, 1000)
+					console.log({ sharedEvent, username })
+					console.log({ assembled_event_: sharedEvent })
+					this.server
+						.of('/')
+						.emit(`assembled_event_${username}`, sharedEvent)
+					this.server.in(`room_${username}`).socketsJoin(sharedEvent)
+					return username
+				}),
+			)
 
 	private handleDamage =
 		(usernameList: string[]) =>
