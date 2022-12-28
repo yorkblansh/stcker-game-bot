@@ -50,15 +50,15 @@ export class _ServerContext {
 	joinUserRoom = (username: string) =>
 		this.socket.join(`room_${username}`)
 
-	listenReadyUserStatus = (cb: (username: string) => any) => {
+	listenReadyUserStatus = (cb: (username: string) => void) => {
 		this.socket.on(`${this.sharedEvent}_ready`, (username: string) =>
 			cb(username),
 		)
 	}
 
-	listenDamage = (cb1: (username: string) => any) => {
+	listenDamagerUsername = (cb: (username: string) => void) => {
 		this.socket.on(`${this.sharedEvent}_damage`, (username: string) =>
-			cb1(username),
+			cb(username),
 		)
 	}
 }
