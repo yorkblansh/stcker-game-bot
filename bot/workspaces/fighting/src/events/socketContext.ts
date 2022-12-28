@@ -1,6 +1,7 @@
 import { Server, Socket } from 'socket.io'
 import { SocketIOEvents as se } from '../shared/SocketIOEvents'
 import { AssembledUser2Event } from './events.gateway'
+import { UserReady2FitghStatus } from '../shared/interfaces'
 
 export interface UserUpdateInfo {
 	username: string
@@ -36,13 +37,8 @@ export class SocketContext {
 		}
 
 	sendUserReady2FightStatus =
-		(assembledEvent: string) =>
-		({ areAllUsersReady, username }) => {
-			this.socket.emit(`${assembledEvent}_ready2fight`, {
-				areAllUsersReady,
-				username,
-			})
-		}
+		(assembledEvent: string) => (data: UserReady2FitghStatus) =>
+			this.socket.emit(`${assembledEvent}_ready2fight`, data)
 
 	serverContext = (server: Server) => new ServerContext(server)
 
