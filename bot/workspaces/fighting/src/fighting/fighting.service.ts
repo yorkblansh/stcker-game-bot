@@ -5,7 +5,7 @@ import chunk from 'lodash.chunk'
 import { Server, Socket } from 'socket.io'
 import { UserReady2FitghStatus } from '../shared/interfaces'
 import { DbService } from '../db/db.service'
-import { SocketContext, UserUpdateInfo } from '../events/socketContext'
+import { ServerSocketContext, UserUpdateInfo } from '../events/socketContext'
 
 export interface DamagerOpponent {
 	damager: UserUpdateInfo
@@ -17,7 +17,7 @@ export class FightingInstanceService {
 	private username: string
 
 	constructor(
-		private readonly ctx: SocketContext,
+		private readonly ctx: ServerSocketContext,
 		private readonly db: DbService,
 		private readonly socket: Socket,
 		private readonly server: Server,
@@ -70,7 +70,7 @@ export class FightingInstanceService {
 		}
 	}
 
-	private handleFighting = async (ctx: SocketContext) => {
+	private handleFighting = async (ctx: ServerSocketContext) => {
 		console.log('handle_fighting')
 		const assembledEvent = ctx.getStuff()
 		const usernameList = assembledEvent.split('.')
