@@ -13,7 +13,7 @@ export interface DamagerOpponent {
 	opponent: UserUpdateInfo
 }
 
-export class SocketContext {
+export class ServerSocketContext {
 	private stuff: string
 	private username: string
 
