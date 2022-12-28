@@ -5,6 +5,7 @@ import chunk from 'lodash.chunk'
 import { Server, Socket } from 'socket.io'
 import { UserReady2FitghStatus } from '../shared/interfaces'
 import { DbService } from '../db/db.service'
+import { size as arraySize } from 'fp-ts/Array'
 import {
 	_ServerContext,
 	UserUpdateInfo,
@@ -61,11 +62,13 @@ export class FightingInstanceService {
 					.reduce((prev, current) => prev + '.' + current),
 			)
 
-	private isListMoreThan2 = (): Either<boolean, boolean> => {
-		const jj = this.db.waitingUserList.getList()
-		console.log({ jj })
-		return jj.length >= 2 ? right(true) : left(false)
-	}
+	private isListMoreThan2 = (): Either<boolean, boolean> =>
+		pipe(
+			this.db.waitingUserList.getList(),
+			//
+			arraySize,
+			(size) => (size >= 2 ? right(true) : left(false)),
+		)
 
 	private checkReadyStatus = (
 		username: string,
