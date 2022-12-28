@@ -4,6 +4,7 @@ import TelegramBot from 'node-telegram-bot-api'
 import internal from 'stream'
 import { pipe } from 'fp-ts/lib/function'
 import { DBFactory } from './dbFactory'
+import { Socket } from 'socket.io-client'
 
 type GETSET = 'get' | 'set'
 
@@ -39,6 +40,7 @@ export class UserContext {
 		private readonly bot: TelegramBot,
 		private readonly redis: RedisClient,
 		public hr: HandledResponse,
+		private readonly socket: Socket,
 	) {
 		this.db = new DBFactory(this.redis, this.hr.username)
 	}

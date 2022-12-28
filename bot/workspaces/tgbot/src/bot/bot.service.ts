@@ -104,7 +104,7 @@ export class BotService implements OnModuleInit {
 			username: query.from.username,
 			// messageId: ,
 		}
-		const uc = new UserContext(this.bot, this.redis, hr)
+		const uc = new UserContext(this.bot, this.redis, hr, this.socket)
 		const queryDataHandlersMap = {
 			[NameConfirmation.generic]: this.nameConfirmationHandler(query),
 			[LocationSwitch.generic]: this.postoyalets(query),
@@ -359,7 +359,7 @@ Village - скромный городишко, в котором осталос�
 				username: msg.chat.username,
 				messageId: msg.message_id,
 			}
-			const uc = new UserContext(this.bot, this.redis, hr)
+			const uc = new UserContext(this.bot, this.redis, hr, this.socket)
 			uc.db.tempChatId('set', hr.chatId)
 
 			const isInputValid =
