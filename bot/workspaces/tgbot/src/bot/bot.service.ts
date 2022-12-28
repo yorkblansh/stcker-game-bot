@@ -157,6 +157,9 @@ export class BotService implements OnModuleInit {
 	})
 
 	private fightMode = async (uc: UserContext) => {
+		const assembledEvent = await uc.db.assembledEvent('get')
+		const usernameList = assembledEvent.split('.')
+
 		const mapPets = {
 			yorkblansh: { sticker: sticker.pets.spider, name: 'Undertaker' },
 			racer1795: { sticker: sticker.pets.pug_default, name: 'Щенок' },
@@ -171,133 +174,123 @@ export class BotService implements OnModuleInit {
 ❤️[HP] - (${petHealth})
 ${damage ? `💢[Damage] - (${damage})` : ''}`
 
-		uc.db
-			.assembledEvent('get')
-			.then((assembledEvent) => {
-				const usernameList = assembledEvent.split('.')
-
-				this.pipeTelegramMessage([
-					() => uc.sendMessage('бой начинается'),
-					() =>
-						uc.sendMessage(
-							usernameList.map((username, i) => `🟨 ${username}`).join('\n'),
-						),
-					() =>
-						uc.sendMessage(
-							'Нажмиже готов для старта поединка',
-							fightModeKDB('ready').options,
-						),
-				]).then((fightMessages) => {
-					const variableMIDS = fightMessages
-						.map((v, i) => (i >= 1 && i <= 2 ? v : undefined))
-						.filter((e) => e !== undefined)
-					const aggregateUserUpdate = (data: FightUserUpdate) => {
-						console.log({ fight_user_update: data })
-						// учиттывать что бы у атакующего и оппонента были разные никнеймы
-						if (data.damager.username === uc.hr.username)
-							return {
-								me: data.damager,
-								opponent: data.opponent,
-								isMyTurn: false,
-							}
-						else if (data.opponent.username === uc.hr.username)
-							return {
-								me: data.opponent,
-								opponent: data.damager,
-								isMyTurn: true,
-							}
+		this.pipeTelegramMessage([
+			() => uc.sendMessage('бой начинается'),
+			() =>
+				uc.sendMessage(
+					usernameList.map((username, i) => `🟨 ${username}`).join('\n'),
+				),
+			() =>
+				uc.sendMessage(
+					'Нажмиже готов для старта поединка',
+					fightModeKDB('ready').options,
+				),
+		]).then((fightMessages) => {
+			const variableMIDS = fightMessages
+				.map((v, i) => (i >= 1 && i <= 2 ? v : undefined))
+				.filter((e) => e !== undefined)
+			const aggregateUserUpdate = (data: FightUserUpdate) => {
+				console.log({ fight_user_update: data })
+				// учиттывать что бы у атакующего и оппонента были разные никнеймы
+				if (data.damager.username === uc.hr.username)
+					return {
+						me: data.damager,
+						opponent: data.opponent,
+						isMyTurn: false,
 					}
-					console.log({ aaaaa: `${assembledEvent}_user_update` })
+				else if (data.opponent.username === uc.hr.username)
+					return {
+						me: data.opponent,
+						opponent: data.damager,
+						isMyTurn: true,
+					}
+			}
+			console.log({ aaaaa: `${assembledEvent}_user_update` })
 
-					let ready2FightUserList: string[] = []
+			let ready2FightUserList: string[] = []
 
-					this.socket.on(
-						`${assembledEvent}_ready2fight`,
-						async ({
-							areAllUsersReady,
-							username: readyUsername,
-						}: UserReady2FitghStatus) => {
-							ready2FightUserList.push(readyUsername)
+			this.socket.on(
+				`${assembledEvent}_ready2fight`,
+				async ({
+					areAllUsersReady,
+					username: readyUsername,
+				}: UserReady2FitghStatus) => {
+					ready2FightUserList.push(readyUsername)
 
-							console.log({ areAllUsersReady })
-							pipe(
-								fightMessages[1],
-								uc.editMessage(
-									usernameList
-										.map(
-											(username) =>
-												`${
-													ready2FightUserList.includes(username) ? '🟩' : '🟨'
-												}  ${username}`,
-										)
-										.join('\n'),
-								),
-							)
-
-							if (readyUsername === uc.hr.username) {
-								pipe(
-									fightMessages[2],
-									uc.editMessage('Ожидайте других игроков'),
+					console.log({ areAllUsersReady })
+					pipe(
+						fightMessages[1],
+						uc.editMessage(
+							usernameList
+								.map(
+									(username) =>
+										`${
+											ready2FightUserList.includes(username) ? '🟩' : '🟨'
+										}  ${username}`,
 								)
-							}
-
-							if (areAllUsersReady) {
-								pipe(fightMessages[2], uc.editMessage('Все игроки готовы'))
-							}
-						},
+								.join('\n'),
+						),
 					)
 
-					this.socket.on(
-						`${assembledEvent}_user_update`,
-						(data: FightUserUpdate) => {
-							console.log({ _user_update: 'exist' })
-							const { me, opponent, isMyTurn } = aggregateUserUpdate(data)
-							pipe(
-								fightMessages[0],
-								uc.editMessage(isMyTurn ? 'ваш ход' : 'ход вашего противника'),
-							)
+					if (readyUsername === uc.hr.username) {
+						pipe(fightMessages[2], uc.editMessage('Ожидайте других игроков'))
+					}
 
-							variableMIDS.map(uc.deleteMessage)
+					if (areAllUsersReady) {
+						pipe(fightMessages[2], uc.editMessage('Все игроки готовы'))
+					}
+				},
+			)
 
-							this.pipeTelegramMessage([
-								() =>
-									uc.sendSticker(
-										mapPets[
-											isMyTurn ? data.opponent.username : data.opponent.username
-										]['sticker'],
-									),
-								() =>
-									uc.sendMessage(
-										mainMessage(
-											mapPets[
-												isMyTurn
-													? data.opponent.username
-													: data.opponent.username
-											],
-											isMyTurn ? data.opponent.health : data.opponent.health,
-											111,
-										),
-									),
-							])
-							// pipe(
-							// 	fightMessages[1],
-							// 	uc.,
-							// )
-
-							// pipe(
-							// 	fightMessages[2],
-							// 	uc.editMessage(
-							// 		mainMessage(me.health, opponent.health),
-							// 		fightModeKDB('damage').editMessageOptions,
-							// 	),
-							// )
-						},
+			this.socket.on(
+				`${assembledEvent}_user_update`,
+				(data: FightUserUpdate) => {
+					console.log({ _user_update: 'exist' })
+					const { me, opponent, isMyTurn } = aggregateUserUpdate(data)
+					pipe(
+						fightMessages[0],
+						uc.editMessage(isMyTurn ? 'ваш ход' : 'ход вашего противника'),
 					)
-				})
-			})
-			.catch((er) => {
-				console.log({ asmbleDATA_ERROR: er })
-			})
+
+					variableMIDS.map(uc.deleteMessage)
+
+					this.pipeTelegramMessage([
+						() =>
+							uc.sendSticker(
+								mapPets[
+									isMyTurn ? data.opponent.username : data.opponent.username
+								]['sticker'],
+							),
+						() =>
+							uc.sendMessage(
+								mainMessage(
+									mapPets[
+										isMyTurn ? data.opponent.username : data.opponent.username
+									],
+									isMyTurn ? data.opponent.health : data.opponent.health,
+									111,
+								),
+							),
+					])
+					// pipe(
+					// 	fightMessages[1],
+					// 	uc.,
+					// )
+
+					// pipe(
+					// 	fightMessages[2],
+					// 	uc.editMessage(
+					// 		mainMessage(me.health, opponent.health),
+					// 		fightModeKDB('damage').editMessageOptions,
+					// 	),
+					// )
+				},
+			)
+		})
+		// })
+		// .catch((er) => {
+		// 	console.log({ asmbleDATA_ERROR: er })
+		// })
 	}
 
 	private makeDamage = (query: TelegramBot.CallbackQuery) => ({
