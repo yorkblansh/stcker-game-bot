@@ -4,7 +4,8 @@ export interface LinkStatusObject {
 	status: string
 }
 
-export const promisedFunction = (item: any) => new Promise((res) => res(item))
+export const promisedFunction = (item: any) =>
+	new Promise((res) => res(item))
 
 export const delayedMap = async (
 	props: {
@@ -12,7 +13,7 @@ export const delayedMap = async (
 		delayMs?: number
 		promisedFn?: (item: any) => Promise<any>
 	},
-	cb: (r: { linkName: string; status: string }) => void
+	cb: (r: { linkName: string; status: string }) => void,
 ) => {
 	const { delayMs, promisedFn, array } = props
 	const pfn = promisedFn ? promisedFn : promisedFunction
@@ -51,12 +52,14 @@ export const getLoopCount = (linksArrLength: number) => {
 
 export const filterLinksStatuses = (
 	linksStatuses: LinkStatusObject[],
-	expectedStatus: LinkStatus | 'all'
+	expectedStatus: LinkStatus | 'all',
 ) =>
 	linksStatuses
 		.filter((value) => {
-			if (value.status === '200' && expectedStatus === '200') return value
-			if (value.status === 'bad' && expectedStatus === 'bad') return value
+			if (value.status === '200' && expectedStatus === '200')
+				return value
+			if (value.status === 'bad' && expectedStatus === 'bad')
+				return value
 			if (expectedStatus === 'all') return value
 		})
 		.filter((linksStatus) => linksStatus !== undefined)

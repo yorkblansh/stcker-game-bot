@@ -24,7 +24,11 @@ function monadPredicat(str: string) {
 }
 
 function rus(
-	value: boolean | string | number | (number | string | NodeJS.Timer)[],
+	value:
+		| boolean
+		| string
+		| number
+		| (number | string | NodeJS.Timer)[],
 ) {
 	if (typeof value == 'boolean') return value ? 22 : 11
 	if (typeof value == 'string') return value
@@ -62,7 +66,8 @@ export class UserContext {
 		pipe(
 			await this.db.tempMessageIdList('get'),
 			this.jsonParse<string[]>,
-			(list) => (list ? list.map(this.deleteMessage) : logErrorMessage()),
+			(list) =>
+				list ? list.map(this.deleteMessage) : logErrorMessage(),
 		)
 	}
 
@@ -109,7 +114,10 @@ export class UserContext {
 
 	deleteMessage = async (id: string | number) => {
 		console.log('message deleted')
-		this.bot.deleteMessage(await this.db.tempChatId('get'), id.toString())
+		this.bot.deleteMessage(
+			await this.db.tempChatId('get'),
+			id.toString(),
+		)
 	}
 
 	sendSticker = async (sticker: string) =>

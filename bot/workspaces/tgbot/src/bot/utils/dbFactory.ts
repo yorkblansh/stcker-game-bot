@@ -21,7 +21,11 @@ function monadPredicat(str: string) {
 }
 
 function rus(
-	value: boolean | string | number | (number | string | NodeJS.Timer)[],
+	value:
+		| boolean
+		| string
+		| number
+		| (number | string | NodeJS.Timer)[],
 ) {
 	if (typeof value == 'boolean') return value ? 22 : 11
 	if (typeof value == 'string') return value
@@ -38,7 +42,9 @@ export class DBFactory {
 
 	private dbMethodsFactory = <
 		WIN extends 'getMonad' | 'getString',
-		GetReturnType = WIN extends 'getMonad' ? Either<boolean, boolean> : string,
+		GetReturnType = WIN extends 'getMonad'
+			? Either<boolean, boolean>
+			: string,
 	>(
 		postfix: keyof typeof Postfix,
 		whatIsNeed: WIN,
@@ -48,12 +54,18 @@ export class DBFactory {
 		const redisArg = this.username + postfix
 		function fn(
 			queryType: 'set',
-			value: boolean | string | number | (number | string | NodeJS.Timer)[],
+			value:
+				| boolean
+				| string
+				| number
+				| (number | string | NodeJS.Timer)[],
 		): Promise<string>
 		function fn(queryType: 'get'): Promise<GetReturnType>
 		function fn<
 			QT extends GETSET,
-			RT = QT extends 'get' ? Promise<GetReturnType> : Promise<string>,
+			RT = QT extends 'get'
+				? Promise<GetReturnType>
+				: Promise<string>,
 		>(queryType: GETSET, value?: string): RT {
 			const method = {
 				get: async () => {
@@ -114,7 +126,10 @@ export class DBFactory {
 		'-interval-timer-list',
 		'getString',
 	)
-	assembledEvent = this.dbMethodsFactory('-assembled-event', 'getString')
+	assembledEvent = this.dbMethodsFactory(
+		'-assembled-event',
+		'getString',
+	)
 	villageHintStatus = this.dbMethodsFactory(
 		'-village-hint-method-status',
 		'getMonad',

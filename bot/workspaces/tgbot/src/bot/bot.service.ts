@@ -11,12 +11,21 @@ import {
 	isItYourNameKBD,
 	NameConfirmation,
 } from './utils/keyboards/isItYourNameKBD'
-import { locationKBD, LocationSwitch } from './utils/keyboards/locationKBD'
+import {
+	locationKBD,
+	LocationSwitch,
+} from './utils/keyboards/locationKBD'
 import { UserContext } from './utils/userContext'
-import { WaitArena, waitArenaKBD } from './utils/keyboards/waitArenaKBD'
+import {
+	WaitArena,
+	waitArenaKBD,
+} from './utils/keyboards/waitArenaKBD'
 import { io, Socket } from 'socket.io-client'
 import { pipe } from 'fp-ts/lib/function'
-import { FightMode, fightModeKDB } from './utils/keyboards/fightModeKBD'
+import {
+	FightMode,
+	fightModeKDB,
+} from './utils/keyboards/fightModeKBD'
 import { Either, left, right } from '@sweet-monads/either'
 import { UserReady2FitghStatus } from 'src/shared/interfaces'
 
@@ -163,7 +172,9 @@ export class BotService implements OnModuleInit {
 			() => uc.sendMessage('бой начинается'),
 			() =>
 				uc.sendMessage(
-					usernameList.map((username, i) => `🟨 ${username}`).join('\n'),
+					usernameList
+						.map((username, i) => `🟨 ${username}`)
+						.join('\n'),
 				),
 			() =>
 				uc.sendMessage(
@@ -173,9 +184,15 @@ export class BotService implements OnModuleInit {
 		])
 
 		const mapPets = {
-			yorkblansh: { sticker: sticker.pets.spider, name: 'Undertaker' },
+			yorkblansh: {
+				sticker: sticker.pets.spider,
+				name: 'Undertaker',
+			},
 			racer1795: { sticker: sticker.pets.pug_default, name: 'Щенок' },
-			yorkblansh1: { sticker: sticker.pets.spider, name: 'Undertaker1' },
+			yorkblansh1: {
+				sticker: sticker.pets.spider,
+				name: 'Undertaker1',
+			},
 		}
 
 		const mainMessage = (
@@ -225,7 +242,9 @@ ${damage ? `💢[Damage] - (${damage})` : ''}`
 							.map(
 								(username) =>
 									`${
-										ready2FightUserList.includes(username) ? '🟩' : '🟨'
+										ready2FightUserList.includes(username)
+											? '🟩'
+											: '🟨'
 									}  ${username}`,
 							)
 							.join('\n'),
@@ -233,7 +252,10 @@ ${damage ? `💢[Damage] - (${damage})` : ''}`
 				)
 
 				if (readyUsername === uc.hr.username) {
-					pipe(fightMessages[2], uc.editMessage('Ожидайте других игроков'))
+					pipe(
+						fightMessages[2],
+						uc.editMessage('Ожидайте других игроков'),
+					)
 				}
 
 				if (areAllUsersReady) {
@@ -242,35 +264,46 @@ ${damage ? `💢[Damage] - (${damage})` : ''}`
 			},
 		)
 
-		this.socket.on(`${assembledEvent}_user_update`, (data: FightUserUpdate) => {
-			console.log({ _user_update: 'exist' })
-			const { me, opponent, isMyTurn } = aggregateUserUpdate(data)
-			pipe(
-				fightMessages[0],
-				uc.editMessage(isMyTurn ? 'ваш ход' : 'ход вашего противника'),
-			)
-
-			variableMIDS.map(uc.deleteMessage)
-
-			this.pipeTelegramMessage([
-				() =>
-					uc.sendSticker(
-						mapPets[isMyTurn ? data.opponent.username : data.opponent.username][
-							'sticker'
-						],
+		this.socket.on(
+			`${assembledEvent}_user_update`,
+			(data: FightUserUpdate) => {
+				console.log({ _user_update: 'exist' })
+				const { me, opponent, isMyTurn } = aggregateUserUpdate(data)
+				pipe(
+					fightMessages[0],
+					uc.editMessage(
+						isMyTurn ? 'ваш ход' : 'ход вашего противника',
 					),
-				() =>
-					uc.sendMessage(
-						mainMessage(
+				)
+
+				variableMIDS.map(uc.deleteMessage)
+
+				this.pipeTelegramMessage([
+					() =>
+						uc.sendSticker(
 							mapPets[
-								isMyTurn ? data.opponent.username : data.opponent.username
-							],
-							isMyTurn ? data.opponent.health : data.opponent.health,
-							111,
+								isMyTurn
+									? data.opponent.username
+									: data.opponent.username
+							]['sticker'],
 						),
-					),
-			])
-		})
+					() =>
+						uc.sendMessage(
+							mainMessage(
+								mapPets[
+									isMyTurn
+										? data.opponent.username
+										: data.opponent.username
+								],
+								isMyTurn
+									? data.opponent.health
+									: data.opponent.health,
+								111,
+							),
+						),
+				])
+			},
+		)
 	}
 
 	private makeDamage = (query: TelegramBot.CallbackQuery) => ({
@@ -300,7 +333,9 @@ Village - скромный городишко, в котором осталос�
 	}
 
 	private menuSlidesHandler = async (uc: UserContext) => {
-		const isHintVillageMessage = (await uc.db.villageHintStatus('get')).value
+		const isHintVillageMessage = (
+			await uc.db.villageHintStatus('get')
+		).value
 		if (isHintVillageMessage) await this.villageHintMessage(uc)
 
 		const locationStuffMID = await this.pipeTelegramMessage([
@@ -317,7 +352,9 @@ Village - скромный городишко, в котором осталос�
 		uc.db.tempMessageIdList('set', [...locationStuffMID])
 	}
 
-	private nameConfirmationHandler = (query: TelegramBot.CallbackQuery) => ({
+	private nameConfirmationHandler = (
+		query: TelegramBot.CallbackQuery,
+	) => ({
 		[NameConfirmation.yes]: async (uc: UserContext) => {
 			uc.deleteAllMessages()
 			uc.db.nicknameStatusRepeated('set', false)
@@ -338,7 +375,10 @@ Village - скромный городишко, в котором осталос�
 					`👇введите имя👇`,
 				])
 			uc.db.nicknameStatusRepeated('set', true)
-			uc.db.tempMessageIdList('set', [...tgResponses, recycledMessageId])
+			uc.db.tempMessageIdList('set', [
+				...tgResponses,
+				recycledMessageId,
+			])
 
 			uc.db.tempIntervalTimerList('set', [intervalTimer])
 			uc.db.nicknameStatus('set', true)
@@ -346,7 +386,10 @@ Village - скромный городишко, в котором осталос�
 	})
 
 	private mapHandler = ({ command, handler }: MapHandlerProps) =>
-		this.bot.onText(command, this.inputMessageHandler(command)(handler))
+		this.bot.onText(
+			command,
+			this.inputMessageHandler(command)(handler),
+		)
 
 	private inputMessageHandler =
 		(command: RegExp) =>
@@ -359,7 +402,12 @@ Village - скромный городишко, в котором осталос�
 				username: msg.chat.username,
 				messageId: msg.message_id,
 			}
-			const uc = new UserContext(this.bot, this.redis, hr, this.socket)
+			const uc = new UserContext(
+				this.bot,
+				this.redis,
+				hr,
+				this.socket,
+			)
 			uc.db.tempChatId('set', hr.chatId)
 
 			const isInputValid =
@@ -405,7 +453,9 @@ Village - скромный городишко, в котором осталос�
 		// })
 	}
 
-	private isUserAdmin = (username: string): Either<boolean, boolean> =>
+	private isUserAdmin = (
+		username: string,
+	): Either<boolean, boolean> =>
 		this.adminList.includes(username) ? right(true) : left(false)
 
 	private flushAll = (uc: UserContext) =>
@@ -421,35 +471,40 @@ Village - скромный городишко, в котором осталос�
 		(status: boolean) => (uc: UserContext, _input?: string) =>
 			uc.db.setUserStatus(_input.split('.')[1].toString(), status)
 
-	private setStartOn = (uc: UserContext) => uc.db.startHelloStatus('set', true)
+	private setStartOn = (uc: UserContext) =>
+		uc.db.startHelloStatus('set', true)
 	private setStartOff = (uc: UserContext) =>
 		uc.db.startHelloStatus('set', false)
 
 	private chooseNicknameHandler = async (uc: UserContext) => {
 		const { input, messageId: userMessageId } = uc.hr
-		uc.db.nicknameStatusRepeated('get').then((eitherNicknameChooseRepeated) =>
-			eitherNicknameChooseRepeated
-				.mapRight(async (isRepeated) => {
-					const tgResponses = await this.pipeTelegramMessage([
-						() => uc.sendSticker(sticker.reject_bunny),
-						() =>
-							uc.sendMessage(`<b><i><u>Bunny Girl</u></i></b>
+		uc.db
+			.nicknameStatusRepeated('get')
+			.then((eitherNicknameChooseRepeated) =>
+				eitherNicknameChooseRepeated
+					.mapRight(async (isRepeated) => {
+						const tgResponses = await this.pipeTelegramMessage([
+							() => uc.sendSticker(sticker.reject_bunny),
+							() =>
+								uc.sendMessage(`<b><i><u>Bunny Girl</u></i></b>
 Это точно твое имя?`),
-						() => uc.sendMessage(`${input}`, isItYourNameKBD().options),
-					])
-					uc.db.tempMessageIdList('set', [...tgResponses])
-				})
-				.mapLeft(async (isFirstChoose) => {
-					const tgResponses = await this.pipeTelegramMessage([
-						() => uc.sendSticker(sticker.nice_bunny),
-						() =>
-							uc.sendMessage(`<b><i><u>Bunny Girl</u></i></b>
+							() =>
+								uc.sendMessage(`${input}`, isItYourNameKBD().options),
+						])
+						uc.db.tempMessageIdList('set', [...tgResponses])
+					})
+					.mapLeft(async (isFirstChoose) => {
+						const tgResponses = await this.pipeTelegramMessage([
+							() => uc.sendSticker(sticker.nice_bunny),
+							() =>
+								uc.sendMessage(`<b><i><u>Bunny Girl</u></i></b>
 У тебя правда такое имя?`),
-						() => uc.sendMessage(`${input}`, isItYourNameKBD().options),
-					])
-					uc.db.tempMessageIdList('set', [...tgResponses])
-				}),
-		)
+							() =>
+								uc.sendMessage(`${input}`, isItYourNameKBD().options),
+						])
+						uc.db.tempMessageIdList('set', [...tgResponses])
+					}),
+			)
 		await uc.deleteIntervalTimerList()
 
 		uc.deleteAllMessages()

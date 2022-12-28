@@ -39,13 +39,21 @@ export const locationKBD = ({ middleButton }: Props) => {
 			),
 		),
 		new Row<InlineKeyboardButton>(
-			new InlineKeyboardButton('⏪', 'callback_data', LocationSwitch.left),
+			new InlineKeyboardButton(
+				'⏪',
+				'callback_data',
+				LocationSwitch.left,
+			),
 			new InlineKeyboardButton(
 				middleButton,
 				'callback_data',
 				LocationSwitch.middle,
 			),
-			new InlineKeyboardButton('⏩', 'callback_data', LocationSwitch.right),
+			new InlineKeyboardButton(
+				'⏩',
+				'callback_data',
+				LocationSwitch.right,
+			),
 		),
 	)
 

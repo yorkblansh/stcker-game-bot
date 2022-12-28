@@ -21,9 +21,12 @@ export const waitArenaKBD = () => {
 		 */
 		new Row<InlineKeyboardButton>(
 			new InlineKeyboardButton('◀️', 'callback_data', WaitArena.back),
-			new InlineKeyboardButton('⚔️', 'callback_data', WaitArena.fight),
+			new InlineKeyboardButton(
+				'⚔️',
+				'callback_data',
+				WaitArena.fight,
+			),
 			// new InlineKeyboardButton('🟦', 'callback_data', WaitArena.test),
-
 		),
 	)
 

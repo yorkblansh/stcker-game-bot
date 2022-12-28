@@ -19,8 +19,16 @@ export const isItYourNameKBD = () => {
 		 * See Row's file for a better Typescript explanation
 		 */
 		new Row<InlineKeyboardButton>(
-			new InlineKeyboardButton('Да', 'callback_data', NameConfirmation.yes),
-			new InlineKeyboardButton('Нет', 'callback_data', NameConfirmation.no),
+			new InlineKeyboardButton(
+				'Да',
+				'callback_data',
+				NameConfirmation.yes,
+			),
+			new InlineKeyboardButton(
+				'Нет',
+				'callback_data',
+				NameConfirmation.no,
+			),
 		),
 	)
 
