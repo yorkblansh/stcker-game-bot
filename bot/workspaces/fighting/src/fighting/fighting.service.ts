@@ -37,7 +37,7 @@ export class FightingInstanceService {
 			.mapRight(() => {
 				this.socket.emit('fight_status', true)
 				this.assembleUsers2Events(2).map((sharedEvent) => {
-					pipe(sharedEvent, this.ctx.setStuff, this.handleFighting)
+					pipe(sharedEvent, this.ctx.setSharedEvent, this.handleFighting)
 				})
 			})
 			.mapLeft(() => {
@@ -73,12 +73,12 @@ export class FightingInstanceService {
 
 	private handleFighting = async (ctx: _ServerContext) => {
 		console.log('handle_fighting')
-		const assembledEvent = ctx.getStuff()
+		const assembledEvent = ctx.getSharedEvent()
 		const usernameList = assembledEvent.split('.')
 
 		usernameList.map(this.initFightForEachUser(assembledEvent))
 
-		ctx.listenReadyStatus(assembledEvent)((username) => {
+		ctx.listenReadyStatus((username) => {
 			pipe(
 				this.checkReadyStatus(username, usernameList),
 				firstMessage2Fighters,
@@ -98,7 +98,7 @@ export class FightingInstanceService {
 			return data
 		}
 
-		ctx.listenDamage(assembledEvent)((damagerUsername) => {
+		ctx.listenDamage((damagerUsername) => {
 			pipe(
 				damagerUsername,
 				this.handleDamage(usernameList),

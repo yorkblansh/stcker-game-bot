@@ -13,14 +13,14 @@ export interface DamagerOpponent {
 }
 
 export class _ServerContext {
-	private stuff: string
+	private sharedEvent: string
 	private username: string
 
 	constructor(private readonly socket: Socket) {}
 
-	getStuff = () => this.stuff
-	setStuff = (stuff: string) => {
-		this.stuff = stuff
+	getSharedEvent = () => this.sharedEvent
+	setSharedEvent = (se: string) => {
+		this.sharedEvent = se
 		return this
 	}
 
@@ -45,13 +45,12 @@ export class _ServerContext {
 
 	joinUserRoom = (username: string) => this.socket.join(`room_${username}`)
 
-	listenReadyStatus =
-		(assembledEvent: string) => (cb1: (dop: string) => any) => {
-			this.socket.on(`${assembledEvent}_ready`, (data: string) => cb1(data))
-		}
+	listenReadyStatus = (cb1: (dop: string) => any) => {
+		this.socket.on(`${this.sharedEvent}_ready`, (data: string) => cb1(data))
+	}
 
-	listenDamage = (assembledEvent: string) => (cb1: (dop: string) => any) => {
-		this.socket.on(`${assembledEvent}_damage`, (data: string) => cb1(data))
+	listenDamage = (cb1: (dop: string) => any) => {
+		this.socket.on(`${this.sharedEvent}_damage`, (data: string) => cb1(data))
 	}
 }
 
