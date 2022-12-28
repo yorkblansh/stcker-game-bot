@@ -28,6 +28,7 @@ import {
 } from './utils/keyboards/fightModeKBD'
 import { Either, left, right } from '@sweet-monads/either'
 import { UserReady2FitghStatus } from 'src/shared/interfaces'
+import { _ClientContext } from 'src/events/_ClientContext'
 
 dotenv.config()
 
@@ -45,7 +46,7 @@ export interface HandledResponse {
 	messageId?: number
 }
 
-interface FightUserUpdate {
+export interface FightUserUpdate {
 	damager: {
 		username: string
 		health: number
@@ -64,7 +65,8 @@ export class BotService implements OnModuleInit {
 		busyPlayers: string[]
 		notFightingPlayes: string[]
 	}
-	private socket: Socket
+	private ctx: _ClientContext
+	// private socket: Socket
 
 	constructor(
 		@Inject('REDIS_CLIENT') private readonly redis: RedisClient,
@@ -83,16 +85,7 @@ export class BotService implements OnModuleInit {
 		this.initBot(process.env.BOT_KEY)
 		this.handleCommands()
 
-		this.socket = io('http://localhost:4040/')
-
-		// client-side
-		this.socket.on('connect', () => {
-			console.log(this.socket.id) // x8WIv7-mJelg7on_ALbx
-		})
-
-		this.socket.on('disconnect', () => {
-			console.log(this.socket.id) // undefined
-		})
+		this.ctx = new _ClientContext()
 	}
 
 	initBot(token: string) {
@@ -139,7 +132,7 @@ export class BotService implements OnModuleInit {
 
 			uc.db.tempMessageIdList('set', [...mid])
 
-			this.socket.on('fight_status', async (fightStatus: boolean) => {
+			this.ctx.listenFightStatus((fightStatus) => {
 				pipe(
 					mid[0],
 					fightStatus
@@ -147,21 +140,39 @@ export class BotService implements OnModuleInit {
 						: uc.editMessage('идет поиск соперника...'),
 				)
 
-				if (fightStatus) {
-					mid.map(uc.deleteMessage)
-				}
+				if (fightStatus) mid.map(uc.deleteMessage)
 			})
+
+			// this.socket.on('fight_status', async (fightStatus: boolean) => {
+			// 	pipe(
+			// 		mid[0],
+			// 		fightStatus
+			// 			? uc.editMessage('соперинк найден!')
+			// 			: uc.editMessage('идет поиск соперника...'),
+			// 	)
+
+			// 	if (fightStatus) {
+			// 		mid.map(uc.deleteMessage)
+			// 	}
+			// })
 
 			console.log('here must be test')
 
-			this.socket.emit('add_user', uc.hr.username)
+			this.ctx.addUser(uc.hr.username)
+			// this.socket.emit('add_user', uc.hr.username)
 			console.log({ username: uc.hr.username })
 			// if (uc.hr.username === 'yorkblansh1')
-			this.socket.on(`assembled_event_${uc.hr.username}`, (data) => {
-				uc.db.assembledEvent('set', data)
-				console.log({ [`for_${uc.hr.username}`]: data })
+
+			this.ctx.listenSharedEvent(uc.hr.username, (sharedEvent) => {
+				uc.db.assembledEvent('set', sharedEvent)
+				console.log({ [`for_${uc.hr.username}`]: sharedEvent })
 				this.fightMode(uc)
 			})
+			// this.socket.on(`assembled_event_${uc.hr.username}`, (data) => {
+			// 	uc.db.assembledEvent('set', data)
+			// 	console.log({ [`for_${uc.hr.username}`]: data })
+			// 	this.fightMode(uc)
+			// })
 		},
 	})
 
@@ -226,12 +237,8 @@ ${damage ? `💢[Damage] - (${damage})` : ''}`
 
 		let ready2FightUserList: string[] = []
 
-		this.socket.on(
-			`${assembledEvent}_ready2fight`,
-			async ({
-				areAllUsersReady,
-				username: readyUsername,
-			}: UserReady2FitghStatus) => {
+		this.ctx.listenReadyToFight(
+			({ areAllUsersReady, username: readyUsername }) => {
 				ready2FightUserList.push(readyUsername)
 
 				console.log({ areAllUsersReady })
@@ -263,6 +270,46 @@ ${damage ? `💢[Damage] - (${damage})` : ''}`
 				}
 			},
 		)
+
+		// this.socket.on(
+		// 	`${assembledEvent}_ready2fight`,
+		// 	async ({
+		// 		areAllUsersReady,
+		// 		username: readyUsername,
+		// 	}: UserReady2FitghStatus) => {
+		// 		ready2FightUserList.push(readyUsername)
+
+		// 		console.log({ areAllUsersReady })
+		// 		pipe(
+		// 			fightMessages[1],
+		// 			uc.editMessage(
+		// 				usernameList
+		// 					.map(
+		// 						(username) =>
+		// 							`${
+		// 								ready2FightUserList.includes(username)
+		// 									? '🟩'
+		// 									: '🟨'
+		// 							}  ${username}`,
+		// 					)
+		// 					.join('\n'),
+		// 			),
+		// 		)
+
+		// 		if (readyUsername === uc.hr.username) {
+		// 			pipe(
+		// 				fightMessages[2],
+		// 				uc.editMessage('Ожидайте других игроков'),
+		// 			)
+		// 		}
+
+		// 		if (areAllUsersReady) {
+		// 			pipe(fightMessages[2], uc.editMessage('Все игроки готовы'))
+		// 		}
+		// 	},
+		// )
+
+		this.ctx.listenUserUpdate((a) => {})
 
 		this.socket.on(
 			`${assembledEvent}_user_update`,
