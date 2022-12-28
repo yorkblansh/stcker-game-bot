@@ -5,7 +5,7 @@ import chunk from 'lodash.chunk'
 import { Server, Socket } from 'socket.io'
 import { UserReady2FitghStatus } from '../shared/interfaces'
 import { DbService } from '../db/db.service'
-import { ServerSocketContext, UserUpdateInfo } from '../events/socketContext'
+import { ServerSocketContext, UserUpdateInfo } from '../events/ServerSocketContext'
 
 export interface DamagerOpponent {
 	damager: UserUpdateInfo
