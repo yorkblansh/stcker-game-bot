@@ -186,7 +186,6 @@ export class BotService implements OnModuleInit {
 ❤️[HP] - (${petHealth})
 ${damage ? `💢[Damage] - (${damage})` : ''}`
 
-		// .then((fightMessages) => {
 		const variableMIDS = fightMessages
 			.map((v, i) => (i >= 1 && i <= 2 ? v : undefined))
 			.filter((e) => e !== undefined)
@@ -271,25 +270,7 @@ ${damage ? `💢[Damage] - (${damage})` : ''}`
 						),
 					),
 			])
-			// pipe(
-			// 	fightMessages[1],
-			// 	uc.,
-			// )
-
-			// pipe(
-			// 	fightMessages[2],
-			// 	uc.editMessage(
-			// 		mainMessage(me.health, opponent.health),
-			// 		fightModeKDB('damage').editMessageOptions,
-			// 	),
-			// )
 		})
-		// }
-
-		// })
-		// .catch((er) => {
-		// 	console.log({ asmbleDATA_ERROR: er })
-		// })
 	}
 
 	private makeDamage = (query: TelegramBot.CallbackQuery) => ({
