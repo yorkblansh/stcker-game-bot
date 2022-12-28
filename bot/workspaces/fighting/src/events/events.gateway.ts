@@ -16,7 +16,7 @@ import { createClient } from 'redis'
 import { Server, Socket } from 'socket.io'
 import chunk from 'lodash.chunk'
 import { Either, left, right } from '@sweet-monads/either'
-import { ServerSocketContext, UserUpdateInfo } from './ServerSocketContext'
+import { _ServerContext, UserUpdateInfo } from './ServerSocketContext'
 import md5 from 'md5'
 import { pipe } from 'fp-ts/lib/function'
 import { FightingInstanceService } from '../fighting/fighting.service'
@@ -69,7 +69,7 @@ export class EventsGateway implements OnModuleInit {
 
 	@SubscribeMessage('add_user')
 	addUser(@MessageBody() username: string, @ConnectedSocket() socket: Socket) {
-		const ctx = new ServerSocketContext(socket).setUsername(username)
+		const ctx = new _ServerContext(socket).setUsername(username)
 
 		new FightingInstanceService(ctx, this.db, socket, this.server)
 	}
