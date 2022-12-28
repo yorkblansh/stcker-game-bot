@@ -82,7 +82,7 @@ export class FightingInstanceService {
 			pipe(
 				this.checkReadyStatus(username, usernameList),
 				firstMessage2Fighters,
-				pipe(assembledEvent, ctx.sendUserReady2FightStatus),
+				ctx.sendUserReady2FightStatus,
 			)
 		})
 

@@ -34,9 +34,8 @@ export class _ServerContext {
 		this.socket.emit(se._user_update(this.sharedEvent), damagerOpponent)
 	}
 
-	sendUserReady2FightStatus =
-		(assembledEvent: string) => (data: UserReady2FitghStatus) =>
-			this.socket.emit(`${assembledEvent}_ready2fight`, data)
+	sendUserReady2FightStatus = (data: UserReady2FitghStatus) =>
+		this.socket.emit(`${this.sharedEvent}_ready2fight`, data)
 
 	serverContext = (server: Server) => new ServerContext(server)
 
