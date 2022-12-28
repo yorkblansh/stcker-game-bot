@@ -80,10 +80,10 @@ export class FightingInstanceService {
 
 	private handleFighting = async (ctx: _ServerContext) => {
 		console.log('handle_fighting')
-		const assembledEvent = ctx.getSharedEvent()
-		const usernameList = assembledEvent.split('.')
+		const sharedEvent = ctx.getSharedEvent()
+		const usernameList = sharedEvent.split('.')
 
-		usernameList.map(this.initFightForEachUser(assembledEvent))
+		usernameList.map(this.initFightForEachUser(sharedEvent))
 
 		ctx.listenReadyStatus((username) => {
 			pipe(
@@ -115,14 +115,14 @@ export class FightingInstanceService {
 	}
 
 	private initFightForEachUser =
-		(assembledEvent: string) => (username: string) => {
+		(sharedEvent: string) => (username: string) => {
 			this.db.damageMap.upsertUser(username, 1000)
-			console.log({ assembledEvent, username })
-			console.log({ assembled_event_: assembledEvent })
+			console.log({ sharedEvent, username })
+			console.log({ assembled_event_: sharedEvent })
 			this.server
 				.of('/')
-				.emit(`assembled_event_${username}`, assembledEvent)
-			this.server.in(`room_${username}`).socketsJoin(assembledEvent)
+				.emit(`assembled_event_${username}`, sharedEvent)
+			this.server.in(`room_${username}`).socketsJoin(sharedEvent)
 			return username
 		}
 
