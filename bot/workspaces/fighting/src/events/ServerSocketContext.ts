@@ -54,14 +54,6 @@ export class ServerSocketContext {
 	listenDamage = (assembledEvent: string) => (cb1: (dop: string) => any) => {
 		this.socket.on(`${assembledEvent}_damage`, (data: string) => cb1(data))
 	}
-
-	// listenEvent = <T>(event: string) => {
-	// 	return new Promise<T>((resolve, reject) => {
-	// 		this.socket.on(event, (data) => {
-	// 			data ? resolve(data) : reject()
-	// 		})
-	// 	})
-	// }
 }
 
 class ServerContext {
