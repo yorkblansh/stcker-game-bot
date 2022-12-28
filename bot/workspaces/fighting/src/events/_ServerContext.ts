@@ -40,7 +40,7 @@ export class _ServerContext {
 	}
 
 	sendUserReady2FightStatus = (data: UserReady2FitghStatus) =>
-		this.socket.emit(`${this.sharedEvent}_ready2fight`, data)
+		this.socket.emit(this.SOCKET_IO_EVENTS._ready2fight, data)
 
 	serverContext = (server: Server) => new ServerContext(server)
 
@@ -51,14 +51,15 @@ export class _ServerContext {
 		this.socket.join(`room_${username}`)
 
 	listenReadyUserStatus = (cb: (username: string) => void) => {
-		this.socket.on(`${this.sharedEvent}_ready`, (username: string) =>
+		this.socket.on(this.SOCKET_IO_EVENTS._ready, (username: string) =>
 			cb(username),
 		)
 	}
 
 	listenDamagerUsername = (cb: (username: string) => void) => {
-		this.socket.on(`${this.sharedEvent}_damage`, (username: string) =>
-			cb(username),
+		this.socket.on(
+			this.SOCKET_IO_EVENTS._damager_username,
+			(username: string) => cb(username),
 		)
 	}
 }
