@@ -90,15 +90,15 @@ export class FightingInstanceService {
 
 		usernameList.map(this.initFightForEachUser(sharedEvent))
 
-		ctx.listenReadyStatus((username) => {
+		ctx.listenReadyUserStatus((username) => {
 			pipe(
 				this.checkReadyStatus(username, usernameList),
-				firstMessage2Fighters,
+				sendFirstMessage,
 				ctx.sendUserReady2FightStatus,
 			)
 		})
 
-		const firstMessage2Fighters = (data: UserReady2FitghStatus) => {
+		const sendFirstMessage = (data: UserReady2FitghStatus) => {
 			const { areAllUsersReady } = data
 			const dop: DamagerOpponent = {
 				damager: { username: usernameList[0], health: 1000 },
