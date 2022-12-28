@@ -39,7 +39,7 @@ export class FightingInstanceService {
 		this.isListMoreThan2()
 			.mapRight(() => {
 				this.socket.emit('fight_status', true)
-				this.assembleUsers2Events(2).map((sharedEvent) => {
+				this.mapUsernamesToSharedEvents(2).map((sharedEvent) => {
 					pipe(
 						sharedEvent,
 						this.ctx.setSharedEvent,
@@ -52,7 +52,9 @@ export class FightingInstanceService {
 				console.log('not enought client')
 			})
 
-	private assembleUsers2Events = (chunkSize: number): string[] =>
+	private mapUsernamesToSharedEvents = (
+		chunkSize: number,
+	): string[] =>
 		chunk(this.db.waitingUserList.getList(), chunkSize) //
 			.map((userPair) =>
 				userPair //
