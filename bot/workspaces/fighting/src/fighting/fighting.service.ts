@@ -3,6 +3,7 @@ import { Either, left, right } from '@sweet-monads/either'
 import { flow, pipe } from 'fp-ts/lib/function'
 import chunk from 'lodash.chunk'
 import { Server, Socket } from 'socket.io'
+import { UserReady2FitghStatus } from '../shared/interfaces'
 import { DbService } from '../db/db.service'
 import { SocketContext, UserUpdateInfo } from '../events/socketContext'
 
@@ -56,7 +57,10 @@ export class FightingInstanceService {
 		return jj.length >= 2 ? right(true) : left(false)
 	}
 
-	private checkReadyStatus = (username: string, usernameList: string[]) => {
+	private checkReadyStatus = (
+		username: string,
+		usernameList: string[],
+	): UserReady2FitghStatus => {
 		this.db.ready2FightUserList.upsertUser(username, true)
 		return {
 			username,
@@ -76,9 +80,22 @@ export class FightingInstanceService {
 		ctx.listenReadyStatus(assembledEvent)((username) => {
 			pipe(
 				this.checkReadyStatus(username, usernameList),
+				firstMessage2Fighters,
 				pipe(assembledEvent, ctx.sendUserReady2FightStatus),
 			)
 		})
+
+		const firstMessage2Fighters = (data: UserReady2FitghStatus) => {
+			const { areAllUsersReady } = data
+			const dop: DamagerOpponent = {
+				damager: { username: usernameList[0], health: 1000 },
+				opponent: { username: usernameList[1], health: 1000 },
+			}
+			areAllUsersReady
+				? setTimeout(() => pipe(dop, ctx.sendUserUpdate(assembledEvent)), 2000)
+				: console.log({ warning: 'not all users are ready' })
+			return data
+		}
 
 		ctx.listenDamage(assembledEvent)((damagerUsername) => {
 			pipe(
