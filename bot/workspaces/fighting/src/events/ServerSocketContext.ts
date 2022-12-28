@@ -1,6 +1,5 @@
 import { Server, Socket } from 'socket.io'
 import { SocketIOEvents as se } from '../shared/SocketIOEvents'
-import { AssembledUser2Event } from './events.gateway'
 import { UserReady2FitghStatus } from '../shared/interfaces'
 
 export interface UserUpdateInfo {
