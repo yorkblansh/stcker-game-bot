@@ -18,6 +18,7 @@ import { io, Socket } from 'socket.io-client'
 import { pipe } from 'fp-ts/lib/function'
 import { FightMode, fightModeKDB } from './utils/keyboards/fightModeKBD'
 import { Either, left, right } from '@sweet-monads/either'
+import { UserReady2FitghStatus } from 'src/shared/interfaces'
 
 dotenv.config()
 
@@ -173,15 +174,23 @@ ${damage ? `💢[Damage] - (${damage})` : ''}`
 		uc.db
 			.assembledEvent('get')
 			.then((assembledEvent) => {
+				const usernameList = assembledEvent.split('.')
+
 				this.pipeTelegramMessage([
 					() => uc.sendMessage('бой начинается'),
-					() => uc.sendSticker(mapPets[uc.hr.username]['sticker']),
 					() =>
 						uc.sendMessage(
-							mainMessage(mapPets[uc.hr.username]['name'], 1000),
+							usernameList.map((username, i) => `🟨 ${username}`).join('\n'),
+						),
+					() =>
+						uc.sendMessage(
+							'Нажмиже готов для старта поединка',
 							fightModeKDB('ready').options,
 						),
 				]).then((fightMessages) => {
+					const variableMIDS = fightMessages
+						.map((v, i) => (i >= 1 && i <= 2 ? v : undefined))
+						.filter((e) => e !== undefined)
 					const aggregateUserUpdate = (data: FightUserUpdate) => {
 						console.log({ fight_user_update: data })
 						// учиттывать что бы у атакующего и оппонента были разные никнеймы
@@ -200,6 +209,44 @@ ${damage ? `💢[Damage] - (${damage})` : ''}`
 					}
 					console.log({ aaaaa: `${assembledEvent}_user_update` })
 
+					let ready2FightUserList: string[] = []
+
+					this.socket.on(
+						`${assembledEvent}_ready2fight`,
+						async ({
+							areAllUsersReady,
+							username: readyUsername,
+						}: UserReady2FitghStatus) => {
+							ready2FightUserList.push(readyUsername)
+
+							console.log({ areAllUsersReady })
+							pipe(
+								fightMessages[1],
+								uc.editMessage(
+									usernameList
+										.map(
+											(username) =>
+												`${
+													ready2FightUserList.includes(username) ? '🟩' : '🟨'
+												}  ${username}`,
+										)
+										.join('\n'),
+								),
+							)
+
+							if (readyUsername === uc.hr.username) {
+								pipe(
+									fightMessages[2],
+									uc.editMessage('Ожидайте других игроков'),
+								)
+							}
+
+							if (areAllUsersReady) {
+								pipe(fightMessages[2], uc.editMessage('Все игроки готовы'))
+							}
+						},
+					)
+
 					this.socket.on(
 						`${assembledEvent}_user_update`,
 						(data: FightUserUpdate) => {
@@ -209,6 +256,8 @@ ${damage ? `💢[Damage] - (${damage})` : ''}`
 								fightMessages[0],
 								uc.editMessage(isMyTurn ? 'ваш ход' : 'ход вашего противника'),
 							)
+
+							variableMIDS.map(uc.deleteMessage)
 
 							this.pipeTelegramMessage([
 								() =>
