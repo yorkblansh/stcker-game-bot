@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io'
-import { SocketIOEvents as se } from '../shared/SocketIOEvents'
+import { SOCKET_IO_EVENTS as __SOCKET_IO_EVENTS__ } from '../shared/SocketIOEvents'
 import { UserReady2FitghStatus } from '../shared/interfaces'
 
 export interface UserUpdateInfo {
@@ -15,12 +15,14 @@ export interface DamagerOpponent {
 export class _ServerContext {
 	private sharedEvent: string
 	private username: string
+	private SOCKET_IO_EVENTS: ReturnType<typeof __SOCKET_IO_EVENTS__>
 
 	constructor(private readonly socket: Socket) {}
 
 	getSharedEvent = () => this.sharedEvent
 	setSharedEvent = (se: string) => {
 		this.sharedEvent = se
+		this.SOCKET_IO_EVENTS = __SOCKET_IO_EVENTS__(se)
 		return this
 	}
 
@@ -31,7 +33,10 @@ export class _ServerContext {
 	}
 
 	sendUserUpdate = (damagerOpponent: DamagerOpponent) => {
-		this.socket.emit(se._user_update(this.sharedEvent), damagerOpponent)
+		this.socket.emit(
+			this.SOCKET_IO_EVENTS._user_update,
+			damagerOpponent,
+		)
 	}
 
 	sendUserReady2FightStatus = (data: UserReady2FitghStatus) =>
@@ -39,24 +44,35 @@ export class _ServerContext {
 
 	serverContext = (server: Server) => new ServerContext(server)
 
-	setFightStatus = (status: boolean) => this.socket.emit('fight_status', status)
+	setFightStatus = (status: boolean) =>
+		this.socket.emit('fight_status', status)
 
-	joinUserRoom = (username: string) => this.socket.join(`room_${username}`)
+	joinUserRoom = (username: string) =>
+		this.socket.join(`room_${username}`)
 
 	listenReadyStatus = (cb1: (dop: string) => any) => {
-		this.socket.on(`${this.sharedEvent}_ready`, (data: string) => cb1(data))
+		this.socket.on(`${this.sharedEvent}_ready`, (data: string) =>
+			cb1(data),
+		)
 	}
 
 	listenDamage = (cb1: (dop: string) => any) => {
-		this.socket.on(`${this.sharedEvent}_damage`, (data: string) => cb1(data))
+		this.socket.on(`${this.sharedEvent}_damage`, (data: string) =>
+			cb1(data),
+		)
 	}
 }
 
 class ServerContext {
 	constructor(private readonly server: Server) {}
 
-	sendAssembledEvent2User = (username: string, assembledEvent: string) =>
-		this.server.of('/').emit(`assembled_event_${username}`, assembledEvent)
+	sendAssembledEvent2User = (
+		username: string,
+		assembledEvent: string,
+	) =>
+		this.server
+			.of('/')
+			.emit(`assembled_event_${username}`, assembledEvent)
 
 	joinRooms2Rooms = (username: string, assembledEvent: string) =>
 		this.server.in(`room_${username}`).socketsJoin(assembledEvent)
