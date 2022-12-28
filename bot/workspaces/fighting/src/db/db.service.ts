@@ -15,11 +15,13 @@ export class DbService {
 	ready2FightUserList = {
 		upsertUser: (username: string, status: boolean) =>
 			this._ready2FightUserList.set(username, status),
-		getUserInfo: (username: string) => this._ready2FightUserList.get(username),
+		getUserInfo: (username: string) =>
+			this._ready2FightUserList.get(username),
 	}
 
 	waitingUserList = {
-		append: (...items: string[]) => this._waitingUserList.push(...items),
+		append: (...items: string[]) =>
+			this._waitingUserList.push(...items),
 		__CLEAR__: () => (this._waitingUserList = []),
 		getList: () => this._waitingUserList,
 	}

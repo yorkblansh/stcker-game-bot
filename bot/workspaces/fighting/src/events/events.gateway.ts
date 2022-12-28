@@ -55,7 +55,9 @@ export class EventsGateway implements OnModuleInit {
 
 	db: DbService
 
-	constructor(@Inject('REDIS_CLIENT') private readonly redis: RedisClient) {}
+	constructor(
+		@Inject('REDIS_CLIENT') private readonly redis: RedisClient,
+	) {}
 
 	onModuleInit() {
 		console.log('module init')
@@ -68,7 +70,10 @@ export class EventsGateway implements OnModuleInit {
 	}
 
 	@SubscribeMessage('add_user')
-	addUser(@MessageBody() username: string, @ConnectedSocket() socket: Socket) {
+	addUser(
+		@MessageBody() username: string,
+		@ConnectedSocket() socket: Socket,
+	) {
 		const ctx = new _ServerContext(socket).setUsername(username)
 
 		new FightingInstanceService(ctx, this.db, socket, this.server)

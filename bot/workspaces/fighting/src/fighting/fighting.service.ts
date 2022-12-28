@@ -5,7 +5,10 @@ import chunk from 'lodash.chunk'
 import { Server, Socket } from 'socket.io'
 import { UserReady2FitghStatus } from '../shared/interfaces'
 import { DbService } from '../db/db.service'
-import { _ServerContext, UserUpdateInfo } from '../events/_ServerContext'
+import {
+	_ServerContext,
+	UserUpdateInfo,
+} from '../events/_ServerContext'
 
 export interface DamagerOpponent {
 	damager: UserUpdateInfo
@@ -37,7 +40,11 @@ export class FightingInstanceService {
 			.mapRight(() => {
 				this.socket.emit('fight_status', true)
 				this.assembleUsers2Events(2).map((sharedEvent) => {
-					pipe(sharedEvent, this.ctx.setSharedEvent, this.handleFighting)
+					pipe(
+						sharedEvent,
+						this.ctx.setSharedEvent,
+						this.handleFighting,
+					)
 				})
 			})
 			.mapLeft(() => {
@@ -99,7 +106,11 @@ export class FightingInstanceService {
 		}
 
 		ctx.listenDamage((damagerUsername) => {
-			pipe(damagerUsername, this.handleDamage(usernameList), ctx.sendUserUpdate)
+			pipe(
+				damagerUsername,
+				this.handleDamage(usernameList),
+				ctx.sendUserUpdate,
+			)
 		})
 	}
 
@@ -108,7 +119,9 @@ export class FightingInstanceService {
 			this.db.damageMap.upsertUser(username, 1000)
 			console.log({ assembledEvent, username })
 			console.log({ assembled_event_: assembledEvent })
-			this.server.of('/').emit(`assembled_event_${username}`, assembledEvent)
+			this.server
+				.of('/')
+				.emit(`assembled_event_${username}`, assembledEvent)
 			this.server.in(`room_${username}`).socketsJoin(assembledEvent)
 			return username
 		}
@@ -120,10 +133,18 @@ export class FightingInstanceService {
 			const randomDamage = this.getRandomDamage(10, 10)
 
 			const { userName, opponentUserName } =
-				this.mapDamagerAndOpponentUsernames(usernameList, damagerUsername)
-			const prevOpponentHealth = this.db.damageMap.getUserInfo(opponentUserName)
-			const updatedDamageForOpponent = prevOpponentHealth - randomDamage
-			this.db.damageMap.upsertUser(opponentUserName, updatedDamageForOpponent)
+				this.mapDamagerAndOpponentUsernames(
+					usernameList,
+					damagerUsername,
+				)
+			const prevOpponentHealth =
+				this.db.damageMap.getUserInfo(opponentUserName)
+			const updatedDamageForOpponent =
+				prevOpponentHealth - randomDamage
+			this.db.damageMap.upsertUser(
+				opponentUserName,
+				updatedDamageForOpponent,
+			)
 			const userHealth = this.db.damageMap.getUserInfo(userName)
 
 			const damagerOpponent = {
@@ -145,9 +166,13 @@ export class FightingInstanceService {
 		damagerUsername: string,
 	) => ({
 		opponentUserName:
-			usernameList[0] === damagerUsername ? usernameList[1] : usernameList[0],
+			usernameList[0] === damagerUsername
+				? usernameList[1]
+				: usernameList[0],
 		userName:
-			usernameList[0] === damagerUsername ? usernameList[0] : usernameList[1],
+			usernameList[0] === damagerUsername
+				? usernameList[0]
+				: usernameList[1],
 	})
 
 	private getRandomDamage = (min: number, max: number) => 10
