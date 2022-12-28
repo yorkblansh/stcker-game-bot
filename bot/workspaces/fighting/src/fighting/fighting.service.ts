@@ -93,17 +93,13 @@ export class FightingInstanceService {
 				opponent: { username: usernameList[1], health: 1000 },
 			}
 			areAllUsersReady
-				? setTimeout(() => pipe(dop, ctx.sendUserUpdate(assembledEvent)), 2000)
+				? setTimeout(() => pipe(dop, ctx.sendUserUpdate), 2000)
 				: console.log({ warning: 'not all users are ready' })
 			return data
 		}
 
 		ctx.listenDamage((damagerUsername) => {
-			pipe(
-				damagerUsername,
-				this.handleDamage(usernameList),
-				ctx.sendUserUpdate(assembledEvent),
-			)
+			pipe(damagerUsername, this.handleDamage(usernameList), ctx.sendUserUpdate)
 		})
 	}
 
