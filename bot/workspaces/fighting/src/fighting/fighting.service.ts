@@ -36,12 +36,8 @@ export class FightingInstanceService {
 		this.isListMoreThan2()
 			.mapRight(() => {
 				this.socket.emit('fight_status', true)
-				this.assembleUsers2Events(2).map((assembledEvent) => {
-					pipe(
-						assembledEvent, //
-						this.ctx.setStuff,
-						this.handleFighting,
-					)
+				this.assembleUsers2Events(2).map((sharedEvent) => {
+					pipe(sharedEvent, this.ctx.setStuff, this.handleFighting)
 				})
 			})
 			.mapLeft(() => {
