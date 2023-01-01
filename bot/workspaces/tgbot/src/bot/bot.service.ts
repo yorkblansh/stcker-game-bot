@@ -149,44 +149,21 @@ export class BotService implements OnModuleInit {
 						: uc.editMessage('идет поиск соперника...'),
 				)
 
-				if (fightStatus) mid.map(uc.deleteMessage)
+				if (fightStatus) uc.deleteMessage(mid)
 			})
 
-			// this.socket.on('fight_status', async (fightStatus: boolean) => {
-			// 	pipe(
-			// 		mid[0],
-			// 		fightStatus
-			// 			? uc.editMessage('соперинк найден!')
-			// 			: uc.editMessage('идет поиск соперника...'),
-			// 	)
-
-			// 	if (fightStatus) {
-			// 		mid.map(uc.deleteMessage)
-			// 	}
-			// })
-
-			console.log('here must be test')
-
 			uc.ctx.addUser(uc.hr.username)
-			// this.socket.emit('add_user', uc.hr.username)
 			console.log({ username: uc.hr.username })
-			// if (uc.hr.username === 'yorkblansh1')
 
 			uc.ctx.listenSharedEvent(
 				uc.hr.username,
 				async (sharedEvent) => {
 					console.log({ DIR: 'listenSharedEvent', sharedEvent })
 					await uc.db.assembledEvent('set', sharedEvent)
-					// uc.ctx.setSharedEvent(sharedEvent)
 					console.log({ [`for_${uc.hr.username}`]: sharedEvent })
 					this.fightMode(uc)
 				},
 			)
-			// this.socket.on(`assembled_event_${uc.hr.username}`, (data) => {
-			// 	uc.db.assembledEvent('set', data)
-			// 	console.log({ [`for_${uc.hr.username}`]: data })
-			// 	this.fightMode(uc)
-			// })
 		},
 	})
 
@@ -333,7 +310,7 @@ ${damage ? `💢[Damage] - (${damage})` : ''}`
 				),
 			)
 
-			variableMIDS.map(uc.deleteMessage)
+			uc.deleteMessage(variableMIDS)
 
 			this.pipeTelegramMessage([
 				() =>
@@ -425,7 +402,7 @@ Village - скромный городишко, в котором осталос�
 		])
 
 		setTimeout(() => {
-			locationInfoMID.map(uc.deleteMessage)
+			uc.deleteMessage(locationInfoMID)
 		}, 10000)
 	}
 

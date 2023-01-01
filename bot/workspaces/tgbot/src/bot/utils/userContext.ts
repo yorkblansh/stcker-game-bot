@@ -114,12 +114,19 @@ export class UserContext {
 	sendPhoto = async (photo: string | internal.Stream | Buffer) =>
 		this.bot.sendPhoto(await this.db.tempChatId('get'), photo)
 
-	deleteMessage = async (id: string | number) => {
-		console.log('message deleted')
-		this.bot.deleteMessage(
-			await this.db.tempChatId('get'),
-			id.toString(),
-		)
+	deleteMessage = async (
+		id: string | number | (string | number)[],
+	) => {
+		const _deleteMessage = async (_id: string | number) => {
+			console.log('message deleted')
+			this.bot.deleteMessage(
+				await this.db.tempChatId('get'),
+				id.toString(),
+			)
+		}
+
+		if (typeof id === 'string') _deleteMessage(id)
+		else if (Array.isArray(id)) id.map((_id) => _deleteMessage(_id))
 	}
 
 	sendSticker = async (sticker: string) =>
