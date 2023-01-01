@@ -1,7 +1,6 @@
 import { pipe } from 'fp-ts/lib/function'
 import { io, Socket } from 'socket.io-client'
 import { DBFactory } from 'src/bot/utils/dbFactory'
-import { UserContext } from 'src/bot/utils/userContext'
 import { FightUserUpdate } from '../bot/bot.service'
 import { UserReady2FitghStatus } from '../shared/interfaces'
 import { SOCKET_IO_EVENTS } from '../shared/SOCKET_IO_EVENTS'
