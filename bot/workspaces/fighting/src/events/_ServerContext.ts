@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io'
-import { SOCKET_IO_EVENTS as __SOCKET_IO_EVENTS__ } from '../shared/SocketIOEvents'
+import { SOCKET_IO_EVENTS as __SOCKET_IO_EVENTS__ } from '../shared/SOCKET_IO_EVENTS'
 import { UserReady2FitghStatus } from '../shared/interfaces'
 
 export interface UserUpdateInfo {
