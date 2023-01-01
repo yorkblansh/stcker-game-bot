@@ -5,6 +5,7 @@ import internal from 'stream'
 import { pipe } from 'fp-ts/lib/function'
 import { DBFactory } from './dbFactory'
 import { Socket } from 'socket.io-client'
+import { _ClientContext } from 'src/events/_ClientContext'
 
 type GETSET = 'get' | 'set'
 
@@ -44,9 +45,10 @@ export class UserContext {
 		private readonly bot: TelegramBot,
 		private readonly redis: RedisClient,
 		public hr: HandledResponse,
-		private readonly socket: Socket,
+		public readonly ctx: _ClientContext, // private readonly socket: Socket,
 	) {
 		this.db = new DBFactory(this.redis, this.hr.username)
+		this.ctx.setDBInstance(this.db, this.hr.username)
 	}
 
 	private jsonParse = <T>(str: string): T => {
