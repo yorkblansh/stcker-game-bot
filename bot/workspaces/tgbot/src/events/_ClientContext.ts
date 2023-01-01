@@ -1,6 +1,6 @@
 import { pipe } from 'fp-ts/lib/function'
 import { io, Socket } from 'socket.io-client'
-import { DBFactory } from 'src/db/db.service'
+import { DbService } from 'src/db/db.service'
 import { FightUserUpdate } from '../bot/bot.service'
 import { UserReady2FitghStatus } from '../shared/interfaces'
 import { SOCKET_IO_EVENTS } from '../shared/SOCKET_IO_EVENTS'
@@ -8,9 +8,9 @@ import { SOCKET_IO_EVENTS } from '../shared/SOCKET_IO_EVENTS'
 type CallbackFor<T> = (data: T) => void
 
 export class _ClientContext {
-	private db: DBFactory
+	private db: DbService
 
-	setDBInstance = (db: DBFactory) => {
+	setDBInstance = (db: DbService) => {
 		this.db = db
 		return this
 	}

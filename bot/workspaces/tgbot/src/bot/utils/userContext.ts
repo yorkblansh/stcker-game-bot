@@ -3,7 +3,7 @@ import { Either, right, left } from '@sweet-monads/either'
 import TelegramBot from 'node-telegram-bot-api'
 import internal from 'stream'
 import { pipe } from 'fp-ts/lib/function'
-import { DBFactory } from '../../db/db.service'
+import { DbService } from '../../db/db.service'
 import { Socket } from 'socket.io-client'
 import { _ClientContext } from 'src/events/_ClientContext'
 
@@ -39,7 +39,7 @@ function rus(
 }
 
 export class UserContext {
-	public db: DBFactory
+	public db: DbService
 
 	constructor(
 		private readonly bot: TelegramBot,
@@ -47,7 +47,7 @@ export class UserContext {
 		public hr: HandledResponse,
 		public readonly ctx: _ClientContext, // private readonly socket: Socket,
 	) {
-		this.db = new DBFactory(this.redis, this.hr.username)
+		this.db = new DbService(this.redis, this.hr.username)
 		this.ctx.setDBInstance(this.db, this.hr.username)
 	}
 

@@ -32,7 +32,7 @@ const rus = (
 		return JSON.stringify(value.map((v) => v.toString()))
 }
 
-export class DBFactory {
+export class DbService {
 	constructor(
 		private readonly redis: RedisClient,
 		private readonly username: string,
