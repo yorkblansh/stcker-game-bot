@@ -28,7 +28,8 @@ import {
 } from './utils/keyboards/fightModeKBD'
 import { Either, left, right } from '@sweet-monads/either'
 import { UserReady2FitghStatus } from 'src/shared/interfaces'
-import { _ClientContext } from 'src/events/_ClientContext'
+import { _ClientContext } from '../events/_ClientContext'
+import { SocketIOInstance } from '../events/SocketIOInstance'
 
 dotenv.config()
 
@@ -65,7 +66,9 @@ export class BotService implements OnModuleInit {
 		busyPlayers: string[]
 		notFightingPlayes: string[]
 	}
-	private ctx: _ClientContext
+	// private ctx: _ClientContext
+	private _socket: Socket
+
 	// private socket: Socket
 
 	constructor(
@@ -85,7 +88,8 @@ export class BotService implements OnModuleInit {
 		this.initBot(process.env.BOT_KEY)
 		this.handleCommands()
 
-		this.ctx = new _ClientContext()
+		// this.ctx = new _ClientContext()
+		this._socket = new SocketIOInstance().socket
 	}
 
 	initBot(token: string) {
@@ -106,7 +110,12 @@ export class BotService implements OnModuleInit {
 			username: query.from.username,
 			// messageId: ,
 		}
-		const uc = new UserContext(this.bot, this.redis, hr, this.socket)
+		const uc = new UserContext(
+			this.bot,
+			this.redis,
+			hr,
+			new _ClientContext(this._socket),
+		)
 		const queryDataHandlersMap = {
 			[NameConfirmation.generic]: this.nameConfirmationHandler(query),
 			[LocationSwitch.generic]: this.postoyalets(query),
@@ -132,7 +141,7 @@ export class BotService implements OnModuleInit {
 
 			uc.db.tempMessageIdList('set', [...mid])
 
-			this.ctx.listenFightStatus((fightStatus) => {
+			uc.ctx.listenFightStatus((fightStatus) => {
 				pipe(
 					mid[0],
 					fightStatus
@@ -158,16 +167,21 @@ export class BotService implements OnModuleInit {
 
 			console.log('here must be test')
 
-			this.ctx.addUser(uc.hr.username)
+			uc.ctx.addUser(uc.hr.username)
 			// this.socket.emit('add_user', uc.hr.username)
 			console.log({ username: uc.hr.username })
 			// if (uc.hr.username === 'yorkblansh1')
 
-			this.ctx.listenSharedEvent(uc.hr.username, (sharedEvent) => {
-				uc.db.assembledEvent('set', sharedEvent)
-				console.log({ [`for_${uc.hr.username}`]: sharedEvent })
-				this.fightMode(uc)
-			})
+			uc.ctx.listenSharedEvent(
+				uc.hr.username,
+				async (sharedEvent) => {
+					console.log({ DIR: 'listenSharedEvent', sharedEvent })
+					await uc.db.assembledEvent('set', sharedEvent)
+					// uc.ctx.setSharedEvent(sharedEvent)
+					console.log({ [`for_${uc.hr.username}`]: sharedEvent })
+					this.fightMode(uc)
+				},
+			)
 			// this.socket.on(`assembled_event_${uc.hr.username}`, (data) => {
 			// 	uc.db.assembledEvent('set', data)
 			// 	console.log({ [`for_${uc.hr.username}`]: data })
@@ -237,7 +251,7 @@ ${damage ? `💢[Damage] - (${damage})` : ''}`
 
 		let ready2FightUserList: string[] = []
 
-		this.ctx.listenReadyToFight(
+		uc.ctx.listenReadyToFight(
 			({ areAllUsersReady, username: readyUsername }) => {
 				ready2FightUserList.push(readyUsername)
 
@@ -309,59 +323,95 @@ ${damage ? `💢[Damage] - (${damage})` : ''}`
 		// 	},
 		// )
 
-		this.ctx.listenUserUpdate((a) => {})
+		uc.ctx.listenUserUpdate((data) => {
+			console.log({ _user_update: 'exist' })
+			const { me, opponent, isMyTurn } = aggregateUserUpdate(data)
+			pipe(
+				fightMessages[0],
+				uc.editMessage(
+					isMyTurn ? 'ваш ход' : 'ход вашего противника',
+				),
+			)
 
-		this.socket.on(
-			`${assembledEvent}_user_update`,
-			(data: FightUserUpdate) => {
-				console.log({ _user_update: 'exist' })
-				const { me, opponent, isMyTurn } = aggregateUserUpdate(data)
-				pipe(
-					fightMessages[0],
-					uc.editMessage(
-						isMyTurn ? 'ваш ход' : 'ход вашего противника',
+			variableMIDS.map(uc.deleteMessage)
+
+			this.pipeTelegramMessage([
+				() =>
+					uc.sendSticker(
+						mapPets[
+							isMyTurn
+								? data.opponent.username
+								: data.opponent.username
+						]['sticker'],
 					),
-				)
-
-				variableMIDS.map(uc.deleteMessage)
-
-				this.pipeTelegramMessage([
-					() =>
-						uc.sendSticker(
+				() =>
+					uc.sendMessage(
+						mainMessage(
 							mapPets[
 								isMyTurn
 									? data.opponent.username
 									: data.opponent.username
-							]['sticker'],
+							],
+							isMyTurn ? data.opponent.health : data.opponent.health,
+							111,
 						),
-					() =>
-						uc.sendMessage(
-							mainMessage(
-								mapPets[
-									isMyTurn
-										? data.opponent.username
-										: data.opponent.username
-								],
-								isMyTurn
-									? data.opponent.health
-									: data.opponent.health,
-								111,
-							),
-						),
-				])
-			},
-		)
+					),
+			])
+		})
+
+		// this.socket.on(
+		// 	`${assembledEvent}_user_update`,
+		// 	(data: FightUserUpdate) => {
+		// 		console.log({ _user_update: 'exist' })
+		// 		const { me, opponent, isMyTurn } = aggregateUserUpdate(data)
+		// 		pipe(
+		// 			fightMessages[0],
+		// 			uc.editMessage(
+		// 				isMyTurn ? 'ваш ход' : 'ход вашего противника',
+		// 			),
+		// 		)
+
+		// 		variableMIDS.map(uc.deleteMessage)
+
+		// 		this.pipeTelegramMessage([
+		// 			() =>
+		// 				uc.sendSticker(
+		// 					mapPets[
+		// 						isMyTurn
+		// 							? data.opponent.username
+		// 							: data.opponent.username
+		// 					]['sticker'],
+		// 				),
+		// 			() =>
+		// 				uc.sendMessage(
+		// 					mainMessage(
+		// 						mapPets[
+		// 							isMyTurn
+		// 								? data.opponent.username
+		// 								: data.opponent.username
+		// 						],
+		// 						isMyTurn
+		// 							? data.opponent.health
+		// 							: data.opponent.health,
+		// 						111,
+		// 					),
+		// 				),
+		// 		])
+		// 	},
+		// )
 	}
 
 	private makeDamage = (query: TelegramBot.CallbackQuery) => ({
 		[FightMode.damage]: async (uc: UserContext) => {
 			console.log({ damage_from: uc.hr.username })
 			const assembledEvent = await uc.db.assembledEvent('get')
-			this.socket.emit(`${assembledEvent}_damage`, uc.hr.username) //damagerUsername
+			uc.ctx.makeDamage(uc.hr.username)
+			// this.socket.emit(`${assembledEvent}_damage`, uc.hr.username) //damagerUsername
 		},
 		[FightMode.ready]: async (uc: UserContext) => {
 			const assembledEvent = await uc.db.assembledEvent('get')
-			this.socket.emit(`${assembledEvent}_ready`, uc.hr.username)
+			uc.ctx.setReadyStatus(uc.hr.username)
+			// this.socket.emit(`${assembledEvent}_ready`, uc.hr.username)
 		},
 	})
 
@@ -453,7 +503,8 @@ Village - скромный городишко, в котором осталос�
 				this.bot,
 				this.redis,
 				hr,
-				this.socket,
+				new _ClientContext(this._socket),
+				// this.socket,
 			)
 			uc.db.tempChatId('set', hr.chatId)
 
