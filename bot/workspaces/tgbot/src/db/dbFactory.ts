@@ -1,7 +1,7 @@
 import { Either, right, left } from '@sweet-monads/either'
-import { RedisClient } from '../bot.service'
+import { RedisClient } from '../bot/bot.service'
 
-type GETSET = 'get' | 'set'
+type GetOrSet = 'get' | 'set'
 
 enum Postfix {
 	'-temp_chat_id' = '-temp_chat_id',
@@ -60,12 +60,12 @@ export class DBFactory {
 		): Promise<string>
 		function fn(queryType: 'get'): Promise<MonadOrString>
 		function fn<
-			QT extends GETSET,
-			RT = QT extends 'get'
+			GoS extends GetOrSet,
+			ReturnType = GoS extends 'get'
 				? Promise<MonadOrString>
 				: Promise<string>,
-		>(queryType: GETSET, value?: string): RT {
-			const method = {
+		>(getOrSet: GetOrSet, value?: string): ReturnType {
+			return {
 				get: async () => {
 					const str = await redis.get(redisArg)
 					return (
@@ -77,8 +77,7 @@ export class DBFactory {
 					) as MonadOrString
 				},
 				set: async () => await redis.set(redisArg, rus(value)),
-			}
-			return method[queryType]() as RT
+			}[getOrSet]() as ReturnType
 		}
 
 		return fn
