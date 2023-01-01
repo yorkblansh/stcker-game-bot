@@ -3,7 +3,7 @@ import { Either, right, left } from '@sweet-monads/either'
 import TelegramBot from 'node-telegram-bot-api'
 import internal from 'stream'
 import { pipe } from 'fp-ts/lib/function'
-import { DBFactory } from '../../db/dbFactory'
+import { DBFactory } from '../../db/db.service'
 import { Socket } from 'socket.io-client'
 import { _ClientContext } from 'src/events/_ClientContext'
 
