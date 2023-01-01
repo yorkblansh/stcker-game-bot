@@ -149,7 +149,7 @@ export class BotService implements OnModuleInit {
 						: uc.editMessage('идет поиск соперника...'),
 				)
 
-				if (fightStatus) uc.deleteMessage(mid)
+				if (fightStatus) uc.deleteMessageById(mid)
 			})
 
 			uc.ctx.addUser(uc.hr.username)
@@ -310,7 +310,7 @@ ${damage ? `💢[Damage] - (${damage})` : ''}`
 				),
 			)
 
-			uc.deleteMessage(variableMIDS)
+			uc.deleteMessageById(variableMIDS)
 
 			this.pipeTelegramMessage([
 				() =>
@@ -402,7 +402,7 @@ Village - скромный городишко, в котором осталос�
 		])
 
 		setTimeout(() => {
-			uc.deleteMessage(locationInfoMID)
+			uc.deleteMessageById(locationInfoMID)
 		}, 10000)
 	}
 
@@ -585,7 +585,7 @@ Village - скромный городишко, в котором осталос�
 		uc.deleteAllMessages()
 
 		uc.db.tempMessageIdList('set', '')
-		uc.deleteMessage(userMessageId)
+		uc.deleteMessageById(userMessageId)
 
 		// const tempIntervalTimerList = JSON.parse(
 		// 	await uc.db.tempIntervalTimerList('get'),
@@ -600,7 +600,7 @@ Village - скромный городишко, в котором осталос�
 			uc.db.villageHintStatus('set', true)
 			uc.db.nicknameStatusRepeated('set', false)
 			const { messageId: userMessageId } = uc.hr
-			uc.deleteMessage(userMessageId)
+			uc.deleteMessageById(userMessageId)
 			const tgResponses = await this.pipeTelegramMessage([
 				() => uc.sendPhoto(this.fsService.getHelloImg()),
 				() =>

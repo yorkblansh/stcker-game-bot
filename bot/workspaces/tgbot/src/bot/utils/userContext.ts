@@ -69,7 +69,7 @@ export class UserContext {
 			await this.db.tempMessageIdList('get'),
 			this.jsonParse<string[]>,
 			(list) =>
-				list ? list.map(this.deleteMessage) : logErrorMessage(),
+				list ? list.map(this.deleteMessageById) : logErrorMessage(),
 		)
 	}
 
@@ -114,7 +114,7 @@ export class UserContext {
 	sendPhoto = async (photo: string | internal.Stream | Buffer) =>
 		this.bot.sendPhoto(await this.db.tempChatId('get'), photo)
 
-	deleteMessage = async (
+	deleteMessageById = async (
 		id: string | number | (string | number)[],
 	) => {
 		const _deleteMessage = async (_id: string | number) => {
