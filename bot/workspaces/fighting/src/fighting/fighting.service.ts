@@ -41,6 +41,7 @@ export class FightingInstanceService {
 			.mapRight(() => {
 				this.socket.emit('fight_status', true)
 				this.mapUsernamesToSharedEvents(2).map((sharedEvent) => {
+					console.log({ DIR: 'mapUsernamesToSharedEvents' })
 					pipe(
 						sharedEvent,
 						this.ctx.setSharedEvent,
@@ -85,7 +86,7 @@ export class FightingInstanceService {
 	}
 
 	private handleFighting = async (ctx: _ServerContext) => {
-		console.log('handle_fighting')
+		console.log({ DIR: 'handle_fighting' })
 		const sharedEvent = ctx.getSharedEvent()
 		const usernameList = sharedEvent.split('.')
 
@@ -125,20 +126,19 @@ export class FightingInstanceService {
 	private initFightForEachUser = (
 		sharedEvent: string,
 		usernameList: string[],
-	) =>
-		pipe(
-			usernameList,
-			Array.map((username) => {
-				this.db.damageMap.upsertUser(username, 1000)
-				console.log({ sharedEvent, username })
-				console.log({ assembled_event_: sharedEvent })
-				this.server
-					.of('/')
-					.emit(`assembled_event_${username}`, sharedEvent)
-				this.server.in(`room_${username}`).socketsJoin(sharedEvent)
-				return username
-			}),
-		)
+	) => {
+		usernameList.map((username) => {
+			console.log({ send_shared_event_to_user: username })
+			this.db.damageMap.upsertUser(username, 1000)
+			console.log({ sharedEvent, username })
+			console.log({ assembled_event_: sharedEvent })
+			this.server
+				.of('/')
+				.emit(`assembled_event_${username}`, sharedEvent)
+			this.server.in(`room_${username}`).socketsJoin(sharedEvent)
+			return username
+		})
+	}
 
 	private handleDamage =
 		(usernameList: string[]) =>
