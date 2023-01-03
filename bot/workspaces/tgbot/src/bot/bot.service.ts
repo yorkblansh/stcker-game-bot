@@ -30,6 +30,7 @@ import { Either, left, right } from '@sweet-monads/either'
 import { UserReady2FitghStatus } from 'src/shared/interfaces'
 import { _ClientContext } from '../events/_ClientContext'
 import { SocketIOInstance } from '../events/SocketIOInstance'
+import { DbService } from 'src/db/db.service'
 
 dotenv.config()
 
@@ -112,7 +113,7 @@ export class BotService implements OnModuleInit {
 		}
 		const uc = new UserContext(
 			this.bot,
-			this.redis,
+			new DbService(this.redis, query.from.username),
 			hr,
 			new _ClientContext(this._socket),
 		)
@@ -478,7 +479,7 @@ Village - скромный городишко, в котором осталос�
 			}
 			const uc = new UserContext(
 				this.bot,
-				this.redis,
+				new DbService(this.redis, msg.chat.username),
 				hr,
 				new _ClientContext(this._socket),
 				// this.socket,
