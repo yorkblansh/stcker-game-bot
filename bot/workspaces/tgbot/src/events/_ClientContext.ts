@@ -24,8 +24,8 @@ export class _ClientContext {
 		pipe(
 			username, //
 			this.socketEmit('_ready'),
-			async (p) => {
-				const { _sharedEvent, event } = await p
+			async (promisedResult) => {
+				const { _sharedEvent, event } = await promisedResult
 				console.log({
 					DIR: 'setReadyStatus',
 					_sharedEvent,
@@ -46,19 +46,35 @@ export class _ClientContext {
 	) =>
 		this.socket.on(`assembled_event_${username}`, (data) => cb(data))
 
-	listenReadyToFight = (cb: CallbackFor<UserReady2FitghStatus>) =>
-		pipe(cb, this.socketOn('_ready2fight'))
+	listenReadyToFight = async (
+		cb: CallbackFor<UserReady2FitghStatus>,
+	) =>
+		pipe(
+			cb, //
+			this.socketOn('_ready2fight'),
+		)
 
 	listenUserUpdate = (cb: CallbackFor<FightUserUpdate>) =>
 		pipe(cb, this.socketOn('_user_update'))
 
 	private socketOn =
-		(event: keyof ReturnType<typeof SOCKET_IO_EVENTS>) =>
-		async (cb: (data: unknown) => void) => {
+		<T>(event: keyof ReturnType<typeof SOCKET_IO_EVENTS>) =>
+		async (cb: CallbackFor<T>) => {
 			const sharedEvent = await this.db.assembledEvent('get')
-			this.socket.on(SOCKET_IO_EVENTS(sharedEvent)[event], (data) =>
-				cb(data),
-			)
+
+			this.socket.on(SOCKET_IO_EVENTS(sharedEvent)[event], (data) => {
+				cb(data)
+			})
+
+			return {
+				SOCKET_IO_EVENT: event,
+				sharedEvent,
+				callback: (cb: CallbackFor<T>) =>
+					this.socket.on(
+						SOCKET_IO_EVENTS(sharedEvent)[event],
+						(data) => cb(data),
+					),
+			}
 		}
 
 	private socketEmit =
