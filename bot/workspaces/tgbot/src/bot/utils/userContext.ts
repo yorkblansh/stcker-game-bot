@@ -39,16 +39,15 @@ function rus(
 }
 
 export class UserContext {
-	public db: DbService
-
 	constructor(
 		private readonly bot: TelegramBot,
-		private readonly redis: RedisClient,
+		public readonly db: DbService,
+		// private readonly redis: RedisClient,
 		public hr: HandledResponse,
 		public readonly ctx: _ClientContext, // private readonly socket: Socket,
 	) {
-		this.db = new DbService(this.redis, this.hr.username)
-		this.ctx.setDBInstance(this.db, this.hr.username)
+		// this.db = new DbService(this.redis, this.hr.username)
+		this.ctx.setDBInstance(this.db)
 	}
 
 	private jsonParse = <T>(str: string): T => {
