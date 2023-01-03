@@ -2,8 +2,8 @@ import { Either, right, left } from '@sweet-monads/either'
 import { RedisClient } from '../bot/bot.service'
 
 enum MethodsFactoryLiteralReturnType {
-	'RETURN_STRING',
-	'RETURN_MONAD',
+	'RETURN_STRING' = 'RETURN_STRING',
+	'RETURN_MONAD' = 'RETURN_MONAD',
 }
 
 type GetOrSet = 'get' | 'set'
@@ -45,7 +45,7 @@ export class DbService {
 
 	private methodsFactory = <
 		LiteralReturnType extends keyof typeof MethodsFactoryLiteralReturnType,
-		MonadOrString = LiteralReturnType extends MethodsFactoryLiteralReturnType.RETURN_MONAD
+		MonadOrString = LiteralReturnType extends 'RETURN_MONAD'
 			? Either<boolean, boolean>
 			: string,
 	>(
