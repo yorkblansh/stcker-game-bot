@@ -27,10 +27,11 @@ import {
 	fightModeKDB,
 } from './utils/keyboards/fightModeKBD'
 import { Either, left, right } from '@sweet-monads/either'
-import { UserReady2FitghStatus } from 'src/shared/interfaces'
+import { UserReady2FitghStatus } from '../shared/interfaces'
 import { _ClientContext } from '../events/_ClientContext'
 import { SocketIOInstance } from '../events/SocketIOInstance'
-import { DbService } from 'src/db/db.service'
+import { DbService } from '../db/db.service'
+import * as E from 'fp-ts/lib/Either'
 
 dotenv.config()
 
@@ -601,7 +602,9 @@ Village - скромный городишко, в котором осталос�
 			uc.db.villageHintStatus('set', true)
 			uc.db.nicknameStatusRepeated('set', false)
 			const { messageId: userMessageId } = uc.hr
-			uc.deleteMessageById(userMessageId)
+
+			await uc.deleteMessageById(userMessageId)
+
 			const tgResponses = await this.pipeTelegramMessage([
 				() => uc.sendPhoto(this.fsService.getHelloImg()),
 				() =>
