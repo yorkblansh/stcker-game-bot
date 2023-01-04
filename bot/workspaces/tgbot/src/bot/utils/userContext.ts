@@ -1,11 +1,13 @@
 import { HandledResponse, RedisClient } from '../bot.service'
-import { Either, right, left } from '@sweet-monads/either'
+// import { Either, right, left } from '@sweet-monads/either'
 import TelegramBot from 'node-telegram-bot-api'
 import internal from 'stream'
 import { pipe } from 'fp-ts/lib/function'
 import { DbService } from '../../db/db.service'
 import { Socket } from 'socket.io-client'
-import { _ClientContext } from 'src/events/_ClientContext'
+import { _ClientContext } from '../../events/_ClientContext'
+import { jsonParse, JsonParseErrorString } from '../../shared/utils'
+import * as E from 'fp-ts/lib/Either'
 
 type GETSET = 'get' | 'set'
 
@@ -39,6 +41,10 @@ function rus(
 }
 
 export class UserContext {
+	private consoleLogError = ({ error }: { error: string }) => {
+		console.log({ error })
+	}
+
 	constructor(
 		private readonly bot: TelegramBot,
 		public readonly db: DbService,
@@ -50,40 +56,21 @@ export class UserContext {
 		this.ctx.setDBInstance(this.db)
 	}
 
-	private jsonParse = <T>(str: string): T => {
-		try {
-			return JSON.parse(str) as T
-		} catch (error) {
-			console.log({ error })
-		}
-	}
-
-	deleteAllMessages = async () => {
-		const logErrorMessage = () =>
-			console.log({
-				deleteAllMessages_ERROR: 'tempMessageIdList is undefined',
-			})
-
+	deleteAllMessages = async () =>
 		pipe(
 			await this.db.tempMessageIdList('get'),
-			this.jsonParse<string[]>,
-			(list) =>
-				list ? list.map(this.deleteMessageById) : logErrorMessage(),
+			jsonParse<string[]>,
+			E.map(this.deleteMessageById),
+			E.mapLeft(this.consoleLogError),
 		)
-	}
 
-	deleteIntervalTimerList = async () => {
-		const logErrorMessage = () =>
-			console.log({
-				deleteAllMessages_ERROR: 'tempMessageIdList is undefined',
-			})
-
+	deleteIntervalTimerList = async () =>
 		pipe(
 			await this.db.tempIntervalTimerList('get'),
-			this.jsonParse<string[]>,
-			(list) => (list ? list.map(clearInterval) : logErrorMessage()),
+			jsonParse<string[]>,
+			E.map((a) => a.map(clearInterval)),
+			E.mapLeft(this.consoleLogError),
 		)
-	}
 
 	editMessage =
 		(text: string, options?: TelegramBot.EditMessageTextOptions) =>
@@ -118,19 +105,29 @@ export class UserContext {
 
 	deleteMessageById = async (
 		id: string | number | (string | number)[],
-	) => {
+	): Promise<
+		| E.Right<E.Either<Promise<string>[], Promise<string>>>
+		| E.Left<{
+				error: string
+		  }>
+	> => {
+		const isIdArray = Array.isArray(id)
+		const isId = typeof id === 'string' || typeof id === 'number'
+
 		const _deleteMessage = async (_id: string | number) =>
 			pipe(
 				await this.db.tempChatId('get'),
-				(a) => {
+				(chatId) => {
 					console.log('message deleted')
-					return a
+					return chatId
 				},
 				this.deleteMessage(_id.toString()),
+				() => _id.toString(),
 			)
 
-		if (typeof id === 'string') _deleteMessage(id)
-		else if (Array.isArray(id)) id.map((_id) => _deleteMessage(_id))
+		if (isId) return E.right(E.right(_deleteMessage(id)))
+		else if (isIdArray) E.right(E.left(id.map(_deleteMessage)))
+		else E.left({ error: 'some error' })
 	}
 
 	sendSticker = async (sticker: string) =>
